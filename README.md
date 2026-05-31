@@ -1,4 +1,4 @@
-﻿# andrud
+# andrud
 
 <p align="center">
   <a href="https://www.npmjs.com/package/andrud"><img src="https://img.shields.io/npm/v/andrud?style=for-the-badge&color=%2300C9FF&labelColor=%23222" alt="npm version"></a>
@@ -15,7 +15,7 @@
   <a href="https://kotlinlang.org/"><img src="https://img.shields.io/badge/Kotlin-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white" alt="kotlin"></a>
 </p>
 
-<h1 align="center">⚡ Modern Android Project Scaffolding CLI</h1>
+<h1 align="center">? Modern Android Project Scaffolding CLI</h1>
 
 <p align="center">
   <strong>andrud</strong> is a blazing-fast, interactive CLI tool for generating production-ready Android project structures in seconds. Built for developers who value speed, consistency, and modern Android development practices.
@@ -27,22 +27,22 @@
 
 ---
 
-## ✨ Features
+## ? Features
 
 | Feature | Description |
 |---------|-------------|
-| 🚀 **Blazing Fast** | Generate complete Android projects in under 5 seconds |
-| 🎨 **Multiple Templates** | Kotlin, Java, Jetpack Compose, Native C++/NDK support |
-| 💎 **Interactive CLI** | Beautiful prompts powered by @clack/prompts |
-| 📦 **Production Ready** | Industry-standard Gradle configuration with latest versions |
-| 🎯 **TypeScript** | Fully typed codebase for reliability |
-| 🔧 **Customizable** | Configure SDK versions, features, and more |
-| 📱 **Modern Android** | Android 15 (SDK 35/36) with Jetpack libraries |
-| 🌙 **Beautiful UI** | Colorful terminal output with gradients |
+| ?? **Blazing Fast** | Generate complete Android projects in under 5 seconds |
+| ?? **Multiple Templates** | Kotlin, Java, Jetpack Compose, Native C++/NDK support |
+| ?? **Interactive CLI** | Beautiful prompts powered by @clack/prompts |
+| ?? **Production Ready** | Industry-standard Gradle configuration with latest versions |
+| ?? **TypeScript** | Fully typed codebase for reliability |
+| ?? **Customizable** | Configure SDK versions, features, and more |
+| ?? **Modern Android** | Android 15 (SDK 35/36) with Jetpack libraries |
+| ?? **Beautiful UI** | Colorful terminal output with gradients |
 
 ---
 
-## 📋 Templates
+## ?? Templates
 
 | Template | Language | UI Framework | Use Case |
 |----------|----------|--------------|----------|
@@ -53,7 +53,7 @@
 
 ---
 
-## 🚀 Quick Start
+## ?? Quick Start
 
 ### Installation
 
@@ -89,7 +89,7 @@ andrud new MyApp
 
 ---
 
-## 📖 Usage Examples
+## ?? Usage Examples
 
 ### Interactive Project Creation
 
@@ -101,8 +101,8 @@ $ andrud create
 ? Select template: kotlin-compose
 ? Project directory: ./projects
 
-⚡ Generating project structure...
-✅ MyAwesomeApp created successfully!
+? Generating project structure...
+? MyAwesomeApp created successfully!
 ```
 
 ### Create with Options
@@ -126,9 +126,9 @@ andrud new MyNativeApp -t native-cpp -p com.mydomain.app
 ```bash
 $ andrud list
 
-╔══════════════════════════════════════════════════════════════╗
-║                    Android Project Templates                   ║
-╚══════════════════════════════════════════════════════════════╝
++--------------------------------------------------------------+
+�                    Android Project Templates                   �
++--------------------------------------------------------------+
 
   1. Kotlin with XML Layouts
      Traditional Android Views with Kotlin...
@@ -145,31 +145,31 @@ $ andrud list
 
 ---
 
-## 🏗️ Project Structure
+## ??? Project Structure
 
 Generated projects include:
 
 ```
 MyApp/
-├── app/
-│   ├── src/main/
-│   │   ├── java/          # Java/Kotlin source files
-│   │   ├── res/           # Resources (layouts, values, drawables)
-│   │   ├── AndroidManifest.xml
-│   │   └── ...
-│   ├── build.gradle.kts   # App-level build config
-│   └── proguard-rules.pro
-├── gradle/wrapper/        # Gradle wrapper files
-├── build.gradle.kts       # Root build config
-├── settings.gradle.kts    # Project settings
-├── gradle.properties      # Gradle properties
-├── .gitignore
-└── README.md
++-- app/
+�   +-- src/main/
+�   �   +-- java/          # Java/Kotlin source files
+�   �   +-- res/           # Resources (layouts, values, drawables)
+�   �   +-- AndroidManifest.xml
+�   �   +-- ...
+�   +-- build.gradle.kts   # App-level build config
+�   +-- proguard-rules.pro
++-- gradle/wrapper/        # Gradle wrapper files
++-- build.gradle.kts       # Root build config
++-- settings.gradle.kts    # Project settings
++-- gradle.properties      # Gradle properties
++-- .gitignore
++-- README.md
 ```
 
 ---
 
-## ⚙️ Configuration
+## ?? Configuration
 
 ### SDK Versions
 
@@ -190,7 +190,7 @@ andrud new MyApp --skip-install
 
 ---
 
-## 🛠️ Development
+## ??? Development
 
 ### Setup
 
@@ -220,7 +220,7 @@ npm run dev -- create
 
 ---
 
-## 📦 Dependencies
+## ?? Dependencies
 
 | Package | Purpose |
 |---------|---------|
@@ -234,7 +234,7 @@ npm run dev -- create
 
 ---
 
-## 🎯 Tech Stack
+## ?? Tech Stack
 
 <p align="center">
   <img src="https://skillicons.dev/icons?i=nodejs,typescript,androidstudio,kotlin,gradle,npm" alt="Tech Stack">
@@ -242,7 +242,7 @@ npm run dev -- create
 
 ---
 
-## 📊 Statistics
+
 
 <p align="center">
   <img src="https://img.shields.io/github/repo-size/MurShidM01/andrud?style=for-the-badge" alt="repo size">
@@ -253,7 +253,7 @@ npm run dev -- create
 
 ---
 
-## 🤝 Contributing
+## ?? Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
@@ -265,13 +265,13 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ---
 
-## 📝 License
+## ?? License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
-## 🙏 Acknowledgments
+## ?? Acknowledgments
 
 - [Android Open Source Project](https://source.android.com/)
 - [Jetpack Compose](https://developer.android.com/compose)
@@ -280,7 +280,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-## 📮 Contact
+## ?? Contact
 
 <p align="center">
   <a href="https://github.com/MurShidM01/andrud/issues">
@@ -294,7 +294,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 <p align="center">
-  <strong>Made with ❤️ by <a href="https://github.com/MurShidM01">MurShidM01</a></strong>
+  <strong>Made with ?? by <a href="https://github.com/MurShidM01">MurShidM01</a></strong>
 </p>
 
 <p align="center">
@@ -303,5 +303,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 </p>
 
 <p align="center">
-  <substar>Star ⭐ this repo if you find it useful!</substar>
+  <substar>Star ? this repo if you find it useful!</substar>
 </p>
