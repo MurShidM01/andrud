@@ -68,3 +68,7 @@ packages/
 
 # Scripts (if not needed in repo)
 scripts/
+
+# Others
+FIXES_IMPLEMENTED.md
+CODE_REVIEW_ANALYSIS.md

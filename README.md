@@ -1,18 +1,18 @@
 ﻿# andrud
 
 <p align="center">
-  <img src="https://img.shields.io/npm/v/@andrud/cli?style=for-the-badge&color=%2300C9FF&labelColor=%23222" alt="npm version">
-  <img src="https://img.shields.io/npm/dm/@andrud/cli?style=for-the-badge&color=%2392FE9D&labelColor=%23222" alt="npm downloads">
+  <a href="https://www.npmjs.com/package/andrud"><img src="https://img.shields.io/npm/v/andrud?style=for-the-badge&color=%2300C9FF&labelColor=%23222" alt="npm version"></a>
+  <a href="https://www.npmjs.com/package/andrud"><img src="https://img.shields.io/npm/dm/andrud?style=for-the-badge&color=%2392FE9D&labelColor=%23222" alt="npm downloads"></a>
   <img src="https://img.shields.io/github/license/MurShidM01/andrud?style=for-the-badge&color=%23ff6b6b&labelColor=%23222" alt="license">
-  <img src="https://img.shields.io/github/stars/MurShidM01/andrud?style=for-the-badge&color=%23ffd93d&labelColor=%23222" alt="stars">
-  <img src="https://img.shields.io/github/forks/MurShidM01/andrud?style=for-the-badge&color=%236bcb77&labelColor=%23222" alt="forks">
+  <a href="https://github.com/MurShidM01/andrud/stargazers"><img src="https://img.shields.io/github/stars/MurShidM01/andrud?style=for-the-badge&color=%23ffd93d&labelColor=%23222" alt="stars"></a>
+  <a href="https://github.com/MurShidM01/andrud/network/members"><img src="https://img.shields.io/github/forks/MurShidM01/andrud?style=for-the-badge&color=%236bcb77&labelColor=%23222" alt="forks"></a>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Node.js-18+-green?style=for-the-badge&logo=node.js&logoColor=white" alt="node">
-  <img src="https://img.shields.io/badge/TypeScript-5.4-blue?style=for-the-badge&logo=typescript&logoColor=white" alt="typescript">
-  <img src="https://img.shields.io/badge/Android-Studio-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="android">
-  <img src="https://img.shields.io/badge/Kotlin-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white" alt="kotlin">
+  <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-18+-green?style=for-the-badge&logo=node.js&logoColor=white" alt="node"></a>
+  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.4-blue?style=for-the-badge&logo=typescript&logoColor=white" alt="typescript"></a>
+  <a href="https://developer.android.com/studio"><img src="https://img.shields.io/badge/Android-Studio-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="android"></a>
+  <a href="https://kotlinlang.org/"><img src="https://img.shields.io/badge/Kotlin-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white" alt="kotlin"></a>
 </p>
 
 <h1 align="center">⚡ Modern Android Project Scaffolding CLI</h1>
@@ -22,7 +22,7 @@
 </p>
 
 <p align="center">
-  <img src="https://i.imgur.com/example.gif" width="600" alt="andrud demo">
+  <img src="https://raw.githubusercontent.com/MurShidM01/andrud/main/sc.png" width="800" alt="andrud demo">
 </p>
 
 ---
@@ -59,7 +59,7 @@
 
 ```bash
 # Install globally via npm
-npm install -g @andrud/cli
+npm install -g andrud
 
 # Verify installation
 andrud --version
@@ -220,20 +220,17 @@ npm run dev -- create
 
 ---
 
-## 📦 What's Included
+## 📦 Dependencies
 
-### Dependencies
-- **@clack/prompts** - Beautiful interactive prompts
-- **cac** - Lightweight CLI argument parser
-- **fs-extra** - Enhanced file system operations
-- **ora** - Elegant terminal spinners
-- **picocolors** - Terminal colors
-- **gradient-string** - Gradient text effects
-- **update-notifier** - Check for updates
-
-### Dev Dependencies
-- **TypeScript 5.4** - Type safety
-- **@types/node** - Node.js type definitions
+| Package | Purpose |
+|---------|---------|
+| [@clack/prompts](https://www.npmjs.com/package/@clack/prompts) | Beautiful interactive prompts |
+| [cac](https://www.npmjs.com/package/cac) | Lightweight CLI argument parser |
+| [fs-extra](https://www.npmjs.com/package/fs-extra) | Enhanced file system operations |
+| [ora](https://www.npmjs.com/package/ora) | Elegant terminal spinners |
+| [picocolors](https://www.npmjs.com/package/picocolors) | Terminal colors |
+| [gradient-string](https://www.npmjs.com/package/gradient-string) | Gradient text effects |
+| [update-notifier](https://www.npmjs.com/package/update-notifier) | Check for updates |
 
 ---
 
@@ -262,7 +259,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
+3. Commit your changes (`git commit -m '"'"'Add amazing feature'"'"'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
