@@ -1,0 +1,70 @@
+﻿# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# TypeScript
+*.tsbuildinfo
+
+# npm
+.npmrc
+package-lock.json
+
+# Temporary files
+*.tmp
+*.temp
+.tmp/
+
+# Test coverage
+coverage/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Debug
+.node_repl_history
+
+# Optional npm cache
+.npm
+
+# ESLint
+.eslintcache
+
+# Logs folder (project-specific)
+logs/
+
+# Claude
+.claude/
+
+# Local development
+*.local
+
+# Build artifacts
+bin/*.js
+!bin/andrud.js
+
+# Packages (if used)
+packages/
+
+# Scripts (if not needed in repo)
+scripts/
