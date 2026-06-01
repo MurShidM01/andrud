@@ -1,10 +1,6 @@
 ﻿# Dependencies
 node_modules/
 
-# Build output
-dist/
-build/
-
 # Logs
 logs/
 *.log
@@ -50,18 +46,8 @@ coverage/
 # ESLint
 .eslintcache
 
-# Logs folder (project-specific)
-logs/
-
-# Claude
-.claude/
-
 # Local development
 *.local
-
-# Build artifacts
-bin/*.js
-!bin/andrud.js
 
 # Packages (if used)
 packages/

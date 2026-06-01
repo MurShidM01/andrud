@@ -1,8 +1,15 @@
-{
+﻿{
   "name": "andrud",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Modern Android project scaffolding CLI tool - Generate production-ready Android projects in seconds",
   "type": "module",
+  "files": [
+    "dist",
+    "bin",
+    "package.json",
+    "README.md",
+    "LICENSE"
+  ],
   "bin": {
     "andrud": "./bin/andrud.js"
   },
@@ -22,24 +29,6 @@
     "android-studio",
     "mobile-development"
   ],
-  "exports": {
-    ".": {
-      "types": "./dist/cli/index.d.ts",
-      "import": "./dist/cli/index.js"
-    },
-    "./core": {
-      "types": "./dist/core/index.d.ts",
-      "import": "./dist/core/index.js"
-    },
-    "./ui": {
-      "types": "./dist/ui/index.d.ts",
-      "import": "./dist/ui/index.js"
-    },
-    "./utils": {
-      "types": "./dist/utils/index.d.ts",
-      "import": "./dist/utils/index.js"
-    }
-  },
   "scripts": {
     "build": "tsc -b",
     "build:all": "tsc -b",
