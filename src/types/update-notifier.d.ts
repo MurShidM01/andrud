@@ -1,4 +1,4 @@
-﻿declare module 'update-notifier' {
+declare module 'update-notifier' {
   interface UpdateInfo {
     name: string;
     version: string;

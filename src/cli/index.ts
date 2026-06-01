@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Command registration and main CLI entry point
  */
 
