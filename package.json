@@ -1,6 +1,6 @@
-{
+﻿{
   "name": "andrud",
-  "version": "1.0.3",
+  "version": "1.0.2",
   "description": "Modern Android project scaffolding CLI tool - Generate production-ready Android projects in seconds",
   "type": "module",
   "files": [
