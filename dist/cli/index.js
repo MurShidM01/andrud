@@ -8,9 +8,24 @@ import { createNewCommand } from './commands/new.js';
 import { createInitCommand } from './commands/init.js';
 import { createInfoCommand } from './commands/info.js';
 import { createListCommand } from './commands/list.js';
-const pkg = { version: '1.0.0' };
+import { readFileSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+// Get version from package.json
+function getVersion() {
+    try {
+        const __dirname = dirname(fileURLToPath(import.meta.url));
+        const pkgPath = join(__dirname, '../../package.json');
+        const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
+        return pkg.version || '1.0.0';
+    }
+    catch {
+        return '1.0.0';
+    }
+}
+const version = getVersion();
 const cli = cac('andrud');
-cli.version(pkg.version);
+cli.version(version);
 // Clean minimal help
 function printHelp() {
     console.log('');
@@ -54,6 +69,26 @@ cli
     .alias('ls')
     .option('--json', 'Output as JSON')
     .action(createListCommand);
+cli
+    .command('update', 'Check for updates')
+    .action(async () => {
+    const updateNotifier = await import('update-notifier');
+    const pkg = { name: 'andrud', version };
+    const notifier = updateNotifier.default({ pkg });
+    if (notifier.update) {
+        console.log(`  ${pc.yellow('Update available:')} ${pc.cyan(notifier.update.latest)}`);
+        console.log(`  ${pc.gray('Current:')} ${version}`);
+        console.log('');
+        console.log(`  Run ${pc.cyan('npm install -g andrud')} to update`);
+        console.log('');
+        console.log(`  Options:`);
+        console.log(`    ${pc.gray('--skip')}     Skip this update`);
+        console.log(`    ${pc.gray('--never')}   Never remind again`);
+    }
+    else {
+        console.log(`  ${pc.green('You are on the latest version:')} ${version}`);
+    }
+});
 cli.on('command:!', () => {
     console.error(pc.red(`  Unknown command. See ${pc.cyan('--help')}\n`));
 });
@@ -75,8 +110,12 @@ export function runCli() {
         }
         // Show version
         if (args.includes('--version') || args.includes('-V')) {
-            console.log(pkg.version);
+            console.log(version);
             return;
+        }
+        // Check for updates in background (non-blocking)
+        if (!args.includes('update')) {
+            checkForUpdates();
         }
         // Quick help on no args
         if (args.length === 0) {
@@ -93,6 +132,25 @@ export function runCli() {
     catch (error) {
         console.error(pc.red(`  ${error.message}\n`));
         process.exit(1);
+    }
+}
+// Check for updates (non-blocking)
+async function checkForUpdates() {
+    try {
+        const updateNotifier = await import('update-notifier');
+        const pkg = { name: 'andrud', version };
+        const notifier = updateNotifier.default({ pkg });
+        notifier.notify({
+            defer: true,
+            isGlobal: true,
+            updateConfig: {
+                behavior: 'default',
+                excludePrerelease: true
+            }
+        });
+    }
+    catch {
+        // Silently fail - don't interrupt user
     }
 }
 // Note: runCli() is called from bin/andrud.js
