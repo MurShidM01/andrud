@@ -6,7 +6,6 @@ import {
   select,
   text,
   multiselect,
-  confirm,
   isCancel,
   cancel
 } from '@clack/prompts';
@@ -19,11 +18,10 @@ import {
   printGoodbye,
   printSteps
 } from '../../ui/output.js';
-import { gradientTeen } from '../../ui/colors.js';
 import { validateAppName, validatePackageStructure, validateDirectoryPath } from '../../utils/validation.js';
 import { generateProject } from '../../core/generator.js';
 import { buildDefaultProjectContext, buildTemplateContext } from '../../core/context.js';
-import { exists, getCurrentWorkingDirectory } from '../../utils/filesystem.js';
+import { exists, resolveProjectDirectory } from '../../utils/filesystem.js';
 import { getTemplateMetadata, getAllTemplates } from '../../templates/index.js';
 import pc from 'picocolors';
 import type { TemplateType } from '../../core/types.js';
@@ -31,15 +29,35 @@ import type { TemplateType } from '../../core/types.js';
 interface NewCommandOptions {
   name?: string;
   template?: string;
+  package?: string;
   packageName?: string;
   directory?: string;
-  minSdk?: number;
-  targetSdk?: number;
+  minSdk?: number | string;
+  targetSdk?: number | string;
   force?: boolean;
   skipInstall?: boolean;
   git?: boolean;
+  readme?: boolean;
   kotlin?: boolean;
   verbose?: boolean;
+  yes?: boolean;
+}
+
+function shouldUseDefaults(options: NewCommandOptions): boolean {
+  return options.yes === true || !process.stdin.isTTY;
+}
+
+function parseSdkOption(value: number | string | undefined, label: string): number | undefined {
+  if (value === undefined) return undefined;
+  const parsed = typeof value === 'number' ? value : Number.parseInt(value, 10);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    throw new Error(`${label} must be a positive integer`);
+  }
+  return parsed;
+}
+
+function packageOption(options: NewCommandOptions): string | undefined {
+  return options.packageName ?? options.package;
 }
 
 /**
@@ -67,6 +85,8 @@ export async function createNewCommand(
         return;
       }
       selectedTemplate = options.template;
+    } else if (shouldUseDefaults(options)) {
+      selectedTemplate = 'kotlin-compose';
     } else {
       const templateOptions = templates.map(t => ({
         label: `${t.name}`,
@@ -98,6 +118,8 @@ export async function createNewCommand(
         return;
       }
       appName = validation.normalized ?? name;
+    } else if (shouldUseDefaults(options)) {
+      appName = 'MyAwesomeApp';
     } else {
       const nameResult = await text({
         message: '? What is the app name?',
@@ -127,57 +149,64 @@ export async function createNewCommand(
 
     // Step 3: Get package name
     let packageName: string;
-    if (options.packageName) {
-      const validation = validatePackageStructure(options.packageName);
+    const packageInput = packageOption(options);
+    if (packageInput) {
+      const validation = validatePackageStructure(packageInput);
       if (!validation.valid) {
         printError('Invalid package name', validation.errors.join(', '));
         return;
       }
-      packageName = options.packageName;
+      packageName = packageInput;
     } else {
       // Generate default package name from app name
       const defaultPackage = `com.example.${appName.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
 
-      const packageResult = await text({
-        message: '? What is the package name?',
-        placeholder: 'com.example.myapp',
-        defaultValue: defaultPackage,
-        validate: (value: string) => {
-          const result = validatePackageStructure(value);
-          if (!result.valid) {
-            return result.errors[0];
+      if (shouldUseDefaults(options)) {
+        packageName = defaultPackage;
+      } else {
+        const packageResult = await text({
+          message: '? What is the package name?',
+          placeholder: 'com.example.myapp',
+          defaultValue: defaultPackage,
+          validate: (value: string) => {
+            const result = validatePackageStructure(value);
+            if (!result.valid) {
+              return result.errors[0];
+            }
+            return undefined;
           }
-          return undefined;
+        });
+
+        if (isCancel(packageResult)) {
+          cancel();
+          return;
         }
-      });
 
-      if (isCancel(packageResult)) {
-        cancel();
-        return;
+        const validation = validatePackageStructure(packageResult as string);
+        if (!validation.valid) {
+          printError('Invalid package name', validation.errors.join(', '));
+          return;
+        }
+        packageName = packageResult as string;
       }
-
-      const validation = validatePackageStructure(packageResult as string);
-      if (!validation.valid) {
-        printError('Invalid package name', validation.errors.join(', '));
-        return;
-      }
-      packageName = packageResult as string;
     }
 
     // Step 4: Get project directory
     let projectDirectory: string;
+    const defaultDir = './';
     if (options.directory) {
       const validation = validateDirectoryPath(options.directory);
       if (!validation.valid) {
         printError('Invalid directory', validation.errors.join(', '));
         return;
       }
-      projectDirectory = validation.normalized ?? options.directory;
+      projectDirectory = resolveProjectDirectory(validation.normalized ?? options.directory, appName);
+    } else if (shouldUseDefaults(options)) {
+      projectDirectory = resolveProjectDirectory(defaultDir, appName);
     } else {
-      const defaultDir = `./${appName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
       const dirResult = await text({
-        message: '? In which directory should the project be created?',
-        placeholder: defaultDir,
+        message: '? Parent directory for the project?',
+        placeholder: './Android-Apps',
         defaultValue: defaultDir,
         validate: (value: string) => {
           const result = validateDirectoryPath(value);
@@ -198,35 +227,44 @@ export async function createNewCommand(
         printError('Invalid directory', validation.errors.join(', '));
         return;
       }
-      projectDirectory = validation.normalized ?? (dirResult as string);
+      projectDirectory = resolveProjectDirectory(validation.normalized ?? (dirResult as string), appName);
     }
 
     // Step 5: Optional features
-    const featureOptions = [
-      { label: 'Git repository', value: 'git', hint: 'Initialize with git' },
-      { label: 'README.md', value: 'readme', hint: 'Generate readme' },
-      { label: 'AndroidX libraries', value: 'androidX', hint: 'Use AndroidX (recommended)', selected: true },
-      { label: 'Kotlin DSL', value: 'kotlinDsl', hint: 'Use Kotlin DSL for Gradle', selected: true }
-    ];
+    let selectedFeatures: string[];
+    if (shouldUseDefaults(options)) {
+      selectedFeatures = ['git', 'readme', 'androidX', 'kotlinDsl'];
+    } else {
+      const featureOptions = [
+        { label: 'Git ignore file', value: 'git', hint: 'Generate .gitignore', selected: true },
+        { label: 'README.md', value: 'readme', hint: 'Generate readme', selected: true },
+        { label: 'AndroidX libraries', value: 'androidX', hint: 'Use AndroidX (recommended)', selected: true },
+        { label: 'Kotlin DSL', value: 'kotlinDsl', hint: 'Use Kotlin DSL for Gradle', selected: true }
+      ];
 
-    const featuresResult = await multiselect({
-      message: '? Select additional features (optional)',
-      options: featureOptions,
-      required: false
-    });
+      const featuresResult = await multiselect({
+        message: '? Select additional features (optional)',
+        options: featureOptions,
+        required: false
+      });
 
-    if (isCancel(featuresResult)) {
-      cancel();
-      return;
+      if (isCancel(featuresResult)) {
+        cancel();
+        return;
+      }
+
+      selectedFeatures = featuresResult as string[];
     }
 
-    const selectedFeatures = featuresResult as string[];
     const features = {
-      git: selectedFeatures.includes('git') || options.git === true,
-      readme: selectedFeatures.includes('readme'),
+      git: options.git ?? selectedFeatures.includes('git'),
+      readme: options.readme ?? selectedFeatures.includes('readme'),
       androidX: selectedFeatures.includes('androidX'),
       kotlinDsl: selectedFeatures.includes('kotlinDsl')
     };
+
+    const minSdk = parseSdkOption(options.minSdk, '--min-sdk');
+    const targetSdk = parseSdkOption(options.targetSdk, '--target-sdk');
 
     // Build context
     const baseContext = buildDefaultProjectContext(
@@ -235,8 +273,8 @@ export async function createNewCommand(
       projectDirectory,
       selectedTemplate as TemplateType,
       features,
-      options.minSdk,
-      options.targetSdk
+      minSdk,
+      targetSdk
     );
 
     const context = buildTemplateContext({

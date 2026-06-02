@@ -4,15 +4,18 @@
 interface NewCommandOptions {
     name?: string;
     template?: string;
+    package?: string;
     packageName?: string;
     directory?: string;
-    minSdk?: number;
-    targetSdk?: number;
+    minSdk?: number | string;
+    targetSdk?: number | string;
     force?: boolean;
     skipInstall?: boolean;
     git?: boolean;
+    readme?: boolean;
     kotlin?: boolean;
     verbose?: boolean;
+    yes?: boolean;
 }
 /**
  * Create a new Android project

@@ -3,6 +3,7 @@
  */
 import fse from 'fs-extra';
 import { resolve, join, dirname, basename, extname, relative, normalize, isAbsolute } from 'path';
+import { platform } from 'os';
 import { fileURLToPath } from 'url';
 // Check if path exists
 export async function exists(path) {
@@ -40,7 +41,12 @@ export async function readFile(path) {
 }
 // Write file content
 export async function writeFile(path, content) {
-    await fse.writeFile(path, content, 'utf-8');
+    if (typeof content === 'string') {
+        await fse.writeFile(path, content, 'utf-8');
+    }
+    else {
+        await fse.writeFile(path, content);
+    }
 }
 // Read JSON file
 export async function readJson(path) {
@@ -98,6 +104,33 @@ export function getAbsolutePath(path) {
         return normalize(path);
     }
     return resolve(getCurrentWorkingDirectory(), path);
+}
+// Convert a user-entered base directory into a host-native absolute path.
+export function normalizeBaseDirectoryInput(input) {
+    const trimmed = input.trim();
+    if (!trimmed) {
+        return trimmed;
+    }
+    if (platform() === 'win32') {
+        const unixDrivePath = trimmed.match(/^\/([a-zA-Z])\/(.*)$/);
+        if (unixDrivePath?.[1] && unixDrivePath[2] !== undefined) {
+            return normalize(`${unixDrivePath[1].toUpperCase()}:\\${unixDrivePath[2].replace(/\//g, '\\')}`);
+        }
+        return isAbsolute(trimmed) ? normalize(trimmed) : resolve(getCurrentWorkingDirectory(), trimmed);
+    }
+    // On POSIX hosts, backslashes are legal filename characters but users often paste
+    // Windows-style separators by accident. Treat them as separators to avoid creating
+    // directories with literal "\" in their names.
+    const posixLike = trimmed.replace(/\\+/g, '/');
+    return isAbsolute(posixLike) ? normalize(posixLike) : resolve(getCurrentWorkingDirectory(), posixLike);
+}
+export function projectDirectoryName(appName) {
+    const name = appName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    return name || 'android-app';
+}
+// Resolve the final project directory from a user-entered parent/base directory.
+export function resolveProjectDirectory(baseDirectory, appName) {
+    return normalize(join(normalizeBaseDirectoryInput(baseDirectory), projectDirectoryName(appName)));
 }
 // Normalize path
 export function normalizePath(path) {

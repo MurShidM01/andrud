@@ -9,10 +9,16 @@ import { buildDefaultProjectContext, buildTemplateContext } from '../../core/con
 import { getCurrentWorkingDirectory } from '../../utils/filesystem.js';
 import { getTemplateMetadata, getAllTemplates } from '../../templates/index.js';
 import pc from 'picocolors';
+function shouldUseDefaults(options) {
+    return options.yes === true || !process.stdin.isTTY;
+}
+function packageOption(options) {
+    return options.packageName ?? options.package;
+}
 /**
  * Initialize Android project in current directory
  */
-export async function createInitCommand(_options, args) {
+export async function createInitCommand(options = {}) {
     try {
         printWelcome();
         const cwd = getCurrentWorkingDirectory();
@@ -24,13 +30,16 @@ export async function createInitCommand(_options, args) {
         const templates = getAllTemplates();
         // Step 1: Select template
         let selectedTemplate;
-        if (args?.template) {
-            const meta = getTemplateMetadata(args.template);
+        if (options.template) {
+            const meta = getTemplateMetadata(options.template);
             if (!meta) {
-                printError(`Unknown template: ${args.template}`);
+                printError(`Unknown template: ${options.template}`);
                 return;
             }
-            selectedTemplate = args.template;
+            selectedTemplate = options.template;
+        }
+        else if (shouldUseDefaults(options)) {
+            selectedTemplate = 'kotlin-compose';
         }
         else {
             const templateOptions = templates.map(t => ({
@@ -50,40 +59,52 @@ export async function createInitCommand(_options, args) {
         }
         // Step 2: Get package name
         const defaultPackage = `com.example.${projectName.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
-        const packageResult = await text({
-            message: '? What is the package name?',
-            placeholder: 'com.example.myapp',
-            defaultValue: defaultPackage,
-            validate: (value) => {
-                const result = validatePackageStructure(value);
-                if (!result.valid) {
-                    return result.errors[0];
-                }
-                return undefined;
-            }
-        });
-        if (isCancel(packageResult)) {
-            cancel();
-            return;
+        const packageInput = packageOption(options);
+        let packageName;
+        if (packageInput) {
+            packageName = packageInput;
         }
-        const packageName = packageResult;
+        else if (shouldUseDefaults(options)) {
+            packageName = defaultPackage;
+        }
+        else {
+            const packageResult = await text({
+                message: '? What is the package name?',
+                placeholder: 'com.example.myapp',
+                defaultValue: defaultPackage,
+                validate: (value) => {
+                    const result = validatePackageStructure(value);
+                    if (!result.valid) {
+                        return result.errors[0];
+                    }
+                    return undefined;
+                }
+            });
+            if (isCancel(packageResult)) {
+                cancel();
+                return;
+            }
+            packageName = packageResult;
+        }
         const validation = validatePackageStructure(packageName);
         if (!validation.valid) {
             printError('Invalid package name', validation.errors.join(', '));
             return;
         }
         // Confirm initialization
-        const confirmInit = await confirm({
-            message: `? Initialize Android project in ${cwd}?`,
-            initialValue: true
-        });
-        if (isCancel(confirmInit)) {
-            cancel();
-            return;
-        }
-        if (!confirmInit) {
-            console.log('Initialization cancelled.');
-            return;
+        if (!shouldUseDefaults(options)) {
+            const confirmInit = await confirm({
+                message: `? Initialize Android project in ${cwd}?`,
+                initialValue: true
+            });
+            if (isCancel(confirmInit)) {
+                cancel();
+                return;
+            }
+            if (!confirmInit) {
+                console.log('Initialization cancelled.');
+                return;
+            }
         }
         // Build context
         const baseContext = buildDefaultProjectContext(projectName, packageName, cwd, selectedTemplate, {
@@ -107,7 +128,7 @@ export async function createInitCommand(_options, args) {
         // Generate project
         printSection('Generating Project');
         const result = await generateProject(context, {
-            overwrite: true,
+            overwrite: options.force ?? false,
             dryRun: false,
             skipInstall: false,
             verbose: false

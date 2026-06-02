@@ -5,7 +5,7 @@ export declare function exists(path: string): Promise<boolean>;
 export declare function isDirectory(path: string): Promise<boolean>;
 export declare function isFile(path: string): Promise<boolean>;
 export declare function readFile(path: string): Promise<string>;
-export declare function writeFile(path: string, content: string): Promise<void>;
+export declare function writeFile(path: string, content: string | Uint8Array): Promise<void>;
 export declare function readJson<T = unknown>(path: string): Promise<T>;
 export declare function writeJson(path: string, data: unknown, spaces?: number): Promise<void>;
 export declare function copyFile(source: string, destination: string): Promise<void>;
@@ -17,6 +17,9 @@ export declare function copyDirectory(source: string, destination: string): Prom
 export declare function ensureDirectory(path: string): Promise<void>;
 export declare function ensureFile(path: string): Promise<void>;
 export declare function getAbsolutePath(path: string): string;
+export declare function normalizeBaseDirectoryInput(input: string): string;
+export declare function projectDirectoryName(appName: string): string;
+export declare function resolveProjectDirectory(baseDirectory: string, appName: string): string;
 export declare function normalizePath(path: string): string;
 export declare function joinPath(...paths: string[]): string;
 export declare function dirnamePath(path: string): string;
@@ -30,7 +33,7 @@ export declare function readDirectory(directory: string): Promise<string[]>;
 /**
  * Write file with timeout protection
  */
-export declare function writeFileWithTimeout(path: string, content: string, timeoutMs?: number): Promise<void>;
+export declare function writeFileWithTimeout(path: string, content: string | Uint8Array, timeoutMs?: number): Promise<void>;
 /**
  * Create directory with timeout protection
  */

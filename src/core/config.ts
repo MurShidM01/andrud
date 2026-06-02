@@ -17,7 +17,7 @@ export const ANDROID_SDK_DEFAULTS = {
  */
 export const GRADLE_VERSIONS = {
   AGP: '8.7.3',
-  GRADLE: '8.14',
+  GRADLE: '8.14.4',
   KOTLIN: '2.0.21',
   COMPOSE_COMPILER: '1.5.14',
   COMPOSE_BOM: '2024.09.03',
@@ -168,5 +168,8 @@ export const TEMPLATE_CONFIGS: Record<string, TemplateConfig> = {
  */
 export function getTemplateConfig(template: string): TemplateConfig {
   const config = TEMPLATE_CONFIGS[template];
-  return config ?? TEMPLATE_CONFIGS['kotlin-xml']!;
+  if (!config) {
+    throw new Error(`Unknown template: ${template}`);
+  }
+  return config;
 }

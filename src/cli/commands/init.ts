@@ -26,16 +26,26 @@ import pc from 'picocolors';
 import type { TemplateType } from '../../core/types.js';
 
 interface InitCommandOptions {
-  force: boolean;
+  force?: boolean;
   template?: string;
+  package?: string;
+  packageName?: string;
+  yes?: boolean;
+}
+
+function shouldUseDefaults(options: InitCommandOptions): boolean {
+  return options.yes === true || !process.stdin.isTTY;
+}
+
+function packageOption(options: InitCommandOptions): string | undefined {
+  return options.packageName ?? options.package;
 }
 
 /**
  * Initialize Android project in current directory
  */
 export async function createInitCommand(
-  _options: InitCommandOptions,
-  args?: { template?: string }
+  options: InitCommandOptions = {}
 ): Promise<void> {
   try {
     printWelcome();
@@ -52,13 +62,15 @@ export async function createInitCommand(
 
     // Step 1: Select template
     let selectedTemplate: string;
-    if (args?.template) {
-      const meta = getTemplateMetadata(args.template as TemplateType);
+    if (options.template) {
+      const meta = getTemplateMetadata(options.template as TemplateType);
       if (!meta) {
-        printError(`Unknown template: ${args.template}`);
+        printError(`Unknown template: ${options.template}`);
         return;
       }
-      selectedTemplate = args.template;
+      selectedTemplate = options.template;
+    } else if (shouldUseDefaults(options)) {
+      selectedTemplate = 'kotlin-compose';
     } else {
       const templateOptions = templates.map(t => ({
         label: t.name,
@@ -81,25 +93,35 @@ export async function createInitCommand(
 
     // Step 2: Get package name
     const defaultPackage = `com.example.${projectName.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
-    const packageResult = await text({
-      message: '? What is the package name?',
-      placeholder: 'com.example.myapp',
-      defaultValue: defaultPackage,
-      validate: (value: string) => {
-        const result = validatePackageStructure(value);
-        if (!result.valid) {
-          return result.errors[0];
-        }
-        return undefined;
-      }
-    });
+    const packageInput = packageOption(options);
+    let packageName: string;
 
-    if (isCancel(packageResult)) {
-      cancel();
-      return;
+    if (packageInput) {
+      packageName = packageInput;
+    } else if (shouldUseDefaults(options)) {
+      packageName = defaultPackage;
+    } else {
+      const packageResult = await text({
+        message: '? What is the package name?',
+        placeholder: 'com.example.myapp',
+        defaultValue: defaultPackage,
+        validate: (value: string) => {
+          const result = validatePackageStructure(value);
+          if (!result.valid) {
+            return result.errors[0];
+          }
+          return undefined;
+        }
+      });
+
+      if (isCancel(packageResult)) {
+        cancel();
+        return;
+      }
+
+      packageName = packageResult as string;
     }
 
-    const packageName = packageResult as string;
     const validation = validatePackageStructure(packageName);
     if (!validation.valid) {
       printError('Invalid package name', validation.errors.join(', '));
@@ -107,19 +129,21 @@ export async function createInitCommand(
     }
 
     // Confirm initialization
-    const confirmInit = await confirm({
-      message: `? Initialize Android project in ${cwd}?`,
-      initialValue: true
-    });
+    if (!shouldUseDefaults(options)) {
+      const confirmInit = await confirm({
+        message: `? Initialize Android project in ${cwd}?`,
+        initialValue: true
+      });
 
-    if (isCancel(confirmInit)) {
-      cancel();
-      return;
-    }
+      if (isCancel(confirmInit)) {
+        cancel();
+        return;
+      }
 
-    if (!confirmInit) {
-      console.log('Initialization cancelled.');
-      return;
+      if (!confirmInit) {
+        console.log('Initialization cancelled.');
+        return;
+      }
     }
 
     // Build context
@@ -153,7 +177,7 @@ export async function createInitCommand(
     printSection('Generating Project');
 
     const result = await generateProject(context, {
-      overwrite: true,
+      overwrite: options.force ?? false,
       dryRun: false,
       skipInstall: false,
       verbose: false

@@ -115,9 +115,11 @@ export function validateDirectoryPath(path) {
         errors.push('Directory path cannot contain ".." to prevent directory traversal');
         return { valid: false, errors, warnings };
     }
-    // Allow normal path characters including Windows backslashes
-    // Just check for truly invalid characters
-    if (/[<>:"|?*]/.test(trimmed)) {
+    // Allow normal path characters including Windows drive letters and backslashes.
+    // Strip a leading drive prefix before checking characters that are invalid on
+    // Windows and unsafe in generated cross-platform project paths.
+    const pathWithoutDrivePrefix = trimmed.replace(/^[A-Za-z]:[\\/]?/, '');
+    if (/[<>:"|?*\0]/.test(pathWithoutDrivePrefix)) {
         errors.push('Directory path contains invalid characters');
         return { valid: false, errors, warnings };
     }
