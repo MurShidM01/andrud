@@ -40,6 +40,22 @@
 | Modern Android | Android 15 (SDK 35/36) with Jetpack libraries |
 | Beautiful UI | Colorful terminal output with gradients |
 
+
+---
+
+## Tested & Supported Platforms
+
+_Last verification: 2026-06-02._
+
+| Platform | Architecture | Status | What was checked |
+|----------|--------------|--------|------------------|
+| Linux | amd64 / x86_64 | ✅ Verified | `andrud new`, absolute Linux paths such as `/home/Android-Apps`, trailing slash paths, pasted backslash normalization, generated `gradlew`, and Gradle Wrapper startup. |
+| Linux | arm64 / aarch64 | 🟡 Supported target | POSIX `gradlew` and generated project files are architecture-neutral; hardware/runner verification is pending. |
+| Windows | amd64 / x64 | 🟡 Supported target | Windows drive paths are accepted, `gradlew.bat` is generated, and path validation supports `D:\Projects\Android`; Windows runner verification is pending. |
+| macOS | amd64 / arm64 | 🟡 Supported target | POSIX `gradlew` is generated; macOS runner verification is pending. |
+
+> Note: Gradle/Android builds still require a valid JDK, Android SDK, and network access or a pre-cached Gradle distribution. In restricted networks, the generated wrapper may need access to `services.gradle.org` or an internal Gradle distribution mirror.
+
 ---
 
 ## Templates
@@ -71,7 +87,7 @@ andrud --version
 # Interactive mode (recommended)
 andrud create
 
-# With all options specified
+# With all options specified (-d is the parent directory; creates ./projects/myapp)
 andrud new MyApp -t kotlin-compose -p com.example.myapp -d ./projects
 
 # Quick create with defaults
@@ -84,6 +100,7 @@ andrud new MyApp
 |---------|-------------|
 | andrud create | Interactive project creation |
 | andrud new name | Create project with name |
+| andrud init | Initialize a project in the current directory |
 | andrud list | Show all available templates |
 | andrud info template | View template details |
 
@@ -181,10 +198,10 @@ andrud new MyApp --min-sdk 24 --target-sdk 35
 ### Features
 
 ```bash
-# Disable specific features
+# Skip optional generated files
 andrud new MyApp --no-git --no-readme
 
-# Skip dependency installation
+# Keep generation-only mode explicit
 andrud new MyApp --skip-install
 ```
 

@@ -57,6 +57,13 @@ cli
   .alias('n')
   .option('-t, --template <type>', 'Template type')
   .option('-p, --package <name>', 'Package name')
+  .option('-d, --directory <path>', 'Project directory')
+  .option('--min-sdk <level>', 'Minimum Android SDK level')
+  .option('--target-sdk <level>', 'Target Android SDK level')
+  .option('--skip-install', 'Skip dependency installation')
+  .option('--no-git', 'Skip .gitignore generation')
+  .option('--no-readme', 'Skip README generation')
+  .option('-y, --yes', 'Use defaults for non-specified prompts')
   .option('-f, --force', 'Overwrite')
   .example('andrud new MyApp -t kotlin-compose')
   .action(createNewCommand);
@@ -64,6 +71,9 @@ cli
 cli
   .command('init', 'Initialize in current directory')
   .alias('i')
+  .option('-t, --template <type>', 'Template type')
+  .option('-p, --package <name>', 'Package name')
+  .option('-y, --yes', 'Use defaults for non-specified prompts')
   .option('-f, --force', 'Overwrite')
   .example('andrud init')
   .action(createInitCommand);

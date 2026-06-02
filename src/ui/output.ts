@@ -66,7 +66,7 @@ export function printWelcome(): void {
     ║     ╚███╔███╔╝██║  ██║██║  ██║    ███████╗██║ ╚████║      ║
     ║      ╚══╝╚══╝ ╚═╝  ╚═╝╚═╝  ╚═╝    ╚══════╝╚═╝  ╚═══╝      ║
     ║                                                           ║
-    ║     Android Project Generator v1.0.0                      ║
+    ║     Android Project Generator v1.0.5                      ║
     ║     Modern Android Development CLI                         ║
     ║                                                           ║
     ╚═══════════════════════════════════════════════════════════╝

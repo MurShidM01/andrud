@@ -59,6 +59,10 @@ test('Validation - Directory Path', async (t) => {
         const result = validateDirectoryPath('../../../etc/passwd');
         assert.strictEqual(result.valid, false);
     });
+    await t.test('should accept Windows drive paths', () => {
+        const result = validateDirectoryPath('D:\\Projects\\Android');
+        assert.strictEqual(result.valid, true);
+    });
 });
 test('String Case Transformations', async (t) => {
     await t.test('camelCase should transform correctly', () => {

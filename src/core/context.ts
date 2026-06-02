@@ -6,7 +6,7 @@ import { camelCase, kebabCase, pascalCase, snakeCase } from '../utils/validation
 import { GRADLE_VERSIONS, ANDROID_SDK_DEFAULTS, getTemplateConfig } from './config.js';
 import type { TemplateType, TemplateContext, AndroidSdkConfig, GradleConfig, ProjectFeatures, NativeCppConfig } from './types.js';
 
-const GENERATOR_VERSION = '1.0.0';
+const GENERATOR_VERSION = '1.0.5';
 
 /**
  * Build default context from basic parameters
