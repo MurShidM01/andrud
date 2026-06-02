@@ -4,6 +4,7 @@
 
 import fse from 'fs-extra';
 import { resolve, join, dirname, basename, extname, relative, normalize, isAbsolute } from 'path';
+import { platform } from 'os';
 import { fileURLToPath } from 'url';
 
 // Check if path exists
@@ -42,8 +43,12 @@ export async function readFile(path: string): Promise<string> {
 }
 
 // Write file content
-export async function writeFile(path: string, content: string): Promise<void> {
-  await fse.writeFile(path, content, 'utf-8');
+export async function writeFile(path: string, content: string | Uint8Array): Promise<void> {
+  if (typeof content === 'string') {
+    await fse.writeFile(path, content, 'utf-8');
+  } else {
+    await fse.writeFile(path, content);
+  }
 }
 
 // Read JSON file
@@ -110,6 +115,38 @@ export function getAbsolutePath(path: string): string {
     return normalize(path);
   }
   return resolve(getCurrentWorkingDirectory(), path);
+}
+
+// Convert a user-entered base directory into a host-native absolute path.
+export function normalizeBaseDirectoryInput(input: string): string {
+  const trimmed = input.trim();
+  if (!trimmed) {
+    return trimmed;
+  }
+
+  if (platform() === 'win32') {
+    const unixDrivePath = trimmed.match(/^\/([a-zA-Z])\/(.*)$/);
+    if (unixDrivePath?.[1] && unixDrivePath[2] !== undefined) {
+      return normalize(`${unixDrivePath[1].toUpperCase()}:\\${unixDrivePath[2].replace(/\//g, '\\')}`);
+    }
+    return isAbsolute(trimmed) ? normalize(trimmed) : resolve(getCurrentWorkingDirectory(), trimmed);
+  }
+
+  // On POSIX hosts, backslashes are legal filename characters but users often paste
+  // Windows-style separators by accident. Treat them as separators to avoid creating
+  // directories with literal "\" in their names.
+  const posixLike = trimmed.replace(/\\+/g, '/');
+  return isAbsolute(posixLike) ? normalize(posixLike) : resolve(getCurrentWorkingDirectory(), posixLike);
+}
+
+export function projectDirectoryName(appName: string): string {
+  const name = appName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  return name || 'android-app';
+}
+
+// Resolve the final project directory from a user-entered parent/base directory.
+export function resolveProjectDirectory(baseDirectory: string, appName: string): string {
+  return normalize(join(normalizeBaseDirectoryInput(baseDirectory), projectDirectoryName(appName)));
 }
 
 // Normalize path
@@ -189,7 +226,7 @@ export async function readDirectory(directory: string): Promise<string[]> {
  */
 export async function writeFileWithTimeout(
   path: string,
-  content: string,
+  content: string | Uint8Array,
   timeoutMs: number = 5000
 ): Promise<void> {
   return Promise.race([

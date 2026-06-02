@@ -105,8 +105,9 @@ export interface GenerationResult {
 // File to be generated
 export interface GeneratedFile {
   path: string;
-  content: string;
+  content: string | Uint8Array;
   overwrite?: boolean;
+  executable?: boolean;
 }
 
 // Validation result

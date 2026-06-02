@@ -4,32 +4,10 @@
 import { text, select, confirm, isCancel, cancel, spinner } from '@clack/prompts';
 import { generateProject } from '../../core/generator.js';
 import { buildDefaultProjectContext, buildTemplateContext } from '../../core/context.js';
-import { exists } from '../../utils/filesystem.js';
+import { exists, resolveProjectDirectory } from '../../utils/filesystem.js';
 import { getAllTemplates, getTemplateMetadata } from '../../templates/index.js';
 import pc from 'picocolors';
-import { resolve, isAbsolute } from 'path';
 import { platform } from 'os';
-/**
- * Normalize path for cross-platform compatibility
- */
-function normalizePath(path) {
-    if (!path || path.trim() === '') {
-        return path;
-    }
-    const trimmed = path.trim();
-    // On Windows, convert Unix-style paths like /d/... to D:\...
-    if (platform() === 'win32') {
-        const unixPathMatch = trimmed.match(/^\/([a-zA-Z])\/(.*)$/);
-        if (unixPathMatch && unixPathMatch[1] && unixPathMatch[2]) {
-            return `${unixPathMatch[1].toUpperCase()}:\\${unixPathMatch[2].replace(/\//g, '\\')}`;
-        }
-    }
-    // Force relative paths to be relative to current directory
-    if (!isAbsolute(trimmed)) {
-        return resolve(trimmed);
-    }
-    return trimmed;
-}
 /**
  * Create a new Android project with clean minimal UI
  */
@@ -93,10 +71,11 @@ export async function createCommand(options = {}) {
     // ============================================
     // Step 4: Directory
     // ============================================
+    const defaultBaseDir = platform() === 'win32' ? 'D:\\Projects\\Android' : './Android-Apps';
     const dirResult = await text({
-        message: '  ? Where to create the project:',
-        placeholder: 'D:\\Projects\\Android',
-        defaultValue: 'D:\\Projects\\Android',
+        message: '  ? Parent directory for the project:',
+        placeholder: defaultBaseDir,
+        defaultValue: defaultBaseDir,
     });
     if (isCancel(dirResult)) {
         cancel();
@@ -108,20 +87,7 @@ export async function createCommand(options = {}) {
         console.log(pc.red('\n  ✘ Directory path cannot be empty\n'));
         return;
     }
-    baseDir = normalizePath(baseDir);
-    // Ensure the directory path ends properly (no trailing slash issues)
-    let projectDirectory;
-    // If the path is ./something, append app name
-    if (baseDir.startsWith('./') || baseDir === '.') {
-        const baseName = baseDir === '.' ? '' : baseDir.slice(1).replace(/^[\\\/]/, '');
-        projectDirectory = baseName
-            ? `${baseName}/${appName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`
-            : `./${appName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
-    }
-    else {
-        // For absolute paths, append app name + sanitize
-        projectDirectory = `${baseDir}\\${appName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
-    }
+    const projectDirectory = resolveProjectDirectory(baseDir, appName);
     // Check if directory exists
     const dirExists = await exists(projectDirectory);
     if (dirExists) {

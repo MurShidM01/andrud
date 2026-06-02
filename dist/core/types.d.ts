@@ -74,8 +74,9 @@ export interface GenerationResult {
 }
 export interface GeneratedFile {
     path: string;
-    content: string;
+    content: string | Uint8Array;
     overwrite?: boolean;
+    executable?: boolean;
 }
 export interface ValidationResult {
     valid: boolean;
