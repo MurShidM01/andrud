@@ -177,15 +177,15 @@ Java_com_example_app_NativeLib_stringFromJNI(
     JNIEnv* env, jobject /* this */) {
     return env->NewStringUTF("Hello from C++");
 }`,
-    'kotlin-multiplatform': `// lib/main.kt (Shared across Android, iOS, Desktop & Web)
+    'kotlin-multiplatform': `// shared/src/App.kt (Shared across Android, iOS, Desktop & Web)
 @Composable
 fun App() {
-    MyAppSharedTheme {
-        SharedApp()
+    MaterialTheme {
+        SharedScreen()
     }
 }
 
-// lib/Platform.kt
+// shared/src/Platform.kt
 interface Platform {
     val name: String
 }

@@ -10,6 +10,7 @@ import { createInitCommand } from './commands/init.js';
 import { createInfoCommand } from './commands/info.js';
 import { createListCommand } from './commands/list.js';
 import { createKmpCommand } from './commands/kmp.js';
+import { createDoctorCommand } from './commands/doctor.js';
 import { getPackageVersion } from '../utils/version.js';
 
 const version = getPackageVersion();
@@ -29,6 +30,7 @@ function printHelp(): void {
   console.log(`  ${pc.gray('andrud init')}                 Initialize a project in current directory`);
   console.log(`  ${pc.gray('andrud list')}                 Show available templates`);
   console.log(`  ${pc.gray('andrud info <template>')}      View template details`);
+  console.log(`  ${pc.gray('andrud doctor')}               Check Android & KMP environment health`);
   console.log(`  ${pc.gray('andrud update')}               Check for CLI updates`);
   console.log('');
   console.log(`  ${pc.bold('Examples:')}`);
@@ -115,6 +117,12 @@ cli
   .action(createListCommand);
 
 cli
+  .command('doctor', 'Check Android & Kotlin Multiplatform environment setup')
+  .option('--json', 'Output diagnostic report as JSON')
+  .example('andrud doctor')
+  .action(createDoctorCommand);
+
+cli
   .command('update', 'Check for updates')
   .action(async () => {
     const updateNotifier = await import('update-notifier');
@@ -160,8 +168,13 @@ export async function runCli(argv: string[] = process.argv): Promise<void> {
       return;
     }
 
-    // Show version
-    if (args.includes('--version') || args.includes('-V')) {
+    // Show version when --version, -V, -v, or `version` is passed at root
+    if (
+      args.includes('--version') ||
+      args.includes('-V') ||
+      (args.includes('-v') && nonFlagArgs.length === 0) ||
+      (nonFlagArgs.length === 1 && nonFlagArgs[0] === 'version')
+    ) {
       console.log(version);
       return;
     }

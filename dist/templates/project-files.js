@@ -31,10 +31,12 @@ captures/
 google-services.json
 vcs.xml
 
-# Kotlin Multiplatform / iOS / Web
+# Kotlin Multiplatform / Amper / iOS / Web
+.amper/
 kotlin-js-store/
 iosApp/Pods/
 iosApp/*.xcworkspace
+iosApp/module.xcodeproj/xcuserdata/
 iosApp/iosApp.xcodeproj/xcuserdata/
 `
     };
@@ -45,13 +47,13 @@ export function generateReadme(ctx) {
         const platformList = platforms
             .map((p) => {
             if (p === 'android')
-                return '- **Android** (`:app`, `:shared/androidMain`)';
+                return '- **Android** (`androidApp/`, `shared/src@android/`)';
             if (p === 'ios')
-                return '- **iOS** (`iosApp`, `:shared/iosMain`)';
+                return '- **iOS** (`iosApp/`, `shared/src@ios/`)';
             if (p === 'desktop')
-                return '- **Desktop JVM** (`:shared/desktopMain`)';
+                return '- **Desktop (JVM)** (`desktopApp/`, `shared/src@jvm/`)';
             if (p === 'wasmJs')
-                return '- **Web (Kotlin/Wasm)** (`:shared/wasmJsMain`)';
+                return '- **Web (Kotlin/Wasm)** (`webApp/`, `shared/src@wasmJs/`)';
             return `- **${p}**`;
         })
             .join('\n');
@@ -59,28 +61,26 @@ export function generateReadme(ctx) {
             path: 'README.md',
             content: `# ${ctx.appName}
 
-A cross-platform **Kotlin Multiplatform (KMP)** and **Compose Multiplatform** project.
+A cross-platform **Kotlin Multiplatform (KMP)** and **Compose Multiplatform** project structured like the official Kotlin CLI.
 
 ## Target Platforms
 ${platformList}
 
 ## Project Structure
-- \`lib/\` — **Flutter-style cross-platform public code** (\`lib/main.kt\`, \`lib/App.kt\`, \`lib/Platform.kt\`, \`lib/Greeting.kt\`, \`lib/ui/theme/\`) shared across all target platforms
-- \`test/\` — Cross-platform unit tests (\`test/GreetingTest.kt\`)
-- \`shared/\` — Kotlin Multiplatform module & native platform bindings (\`androidMain\`, \`iosMain\`, \`desktopMain\`, \`wasmJsMain\`)
-- \`app/\` — Android application runner powered by Jetpack Compose & \`:shared\`
-${platforms.includes('ios') ? '- `iosApp/` — iOS SwiftUI host application wrapping the shared Compose Multiplatform UI\n' : ''}- \`gradle/libs.versions.toml\` — Gradle version catalog
-
-## Requirements
-- Android Studio Ladybug (2024.2.1) or Fleet / IntelliJ IDEA
-- JDK 17 or later
-- Android SDK API ${ctx.android.targetSdk}
-- Gradle ${ctx.gradle.gradleVersion}
-${platforms.includes('ios') ? '- Xcode 16+ (on macOS for iOS builds)\n' : ''}
+- \`project.yaml\` — Root multiplatform module configuration
+- \`libs.versions.toml\` — Dependency and plugin version catalog
+- \`kotlin\` / \`kotlin.bat\` — Official Kotlin Multiplatform CLI wrapper scripts
+- \`shared/\` — Shared Compose Multiplatform library module:
+  - \`shared/module.yaml\` — Shared module definition & multiplatform targets
+  - \`shared/src/\` — Common Kotlin & Compose Multiplatform code (\`App.kt\`, \`Greeting.kt\`, \`Platform.kt\`)
+  - \`shared/src@android/\`, \`shared/src@ios/\`, \`shared/src@jvm/\`, \`shared/src@wasmJs/\` — Platform-specific \`actual\` implementations
+  - \`shared/test/\` & \`shared/test@*/\` — Common and platform-specific tests
+  - \`shared/composeResources/\` — Shared Compose Multiplatform resources
+${platforms.includes('android') ? '- `androidApp/` — Android application module (`module.yaml`, `src/MainActivity.kt`, `src/AndroidManifest.xml`, `res/`)\n' : ''}${platforms.includes('desktop') ? '- `desktopApp/` — Desktop JVM application module (`module.yaml`, `src/main.kt`, `resources/logback.xml`)\n' : ''}${platforms.includes('ios') ? '- `iosApp/` — iOS application module (`module.yaml`, `module.xcodeproj/`, `src/ViewController.kt`, `src/iosApp.swift`)\n' : ''}${platforms.includes('wasmJs') ? '- `webApp/` — Web (Kotlin/Wasm) application module (`module.yaml`, `src/main.kt`, `resources/index.html`, `resources/styles.css`)\n' : ''}
 ## Build & Run Commands
-- **Android Debug APK**: \`./gradlew :app:assembleDebug\`
-- **Shared Multiplatform Tests**: \`./gradlew :shared:allTests\`
-${platforms.includes('desktop') ? '- **Desktop JVM**: `./gradlew :shared:run`\n' : ''}${platforms.includes('wasmJs') ? '- **Web (Kotlin/Wasm)**: `./gradlew :shared:wasmJsBrowserDevelopmentRun`\n' : ''}
+- **Build All Modules**: \`./kotlin build\` (or \`kotlin.bat build\` on Windows)
+- **Run Tests**: \`./kotlin test\`
+${platforms.includes('android') ? '- **Run Android App**: `./kotlin run -m androidApp`\n' : ''}${platforms.includes('desktop') ? '- **Run Desktop App**: `./kotlin run -m desktopApp`\n' : ''}${platforms.includes('ios') ? '- **Run iOS App**: `./kotlin run -m iosApp` (macOS with Xcode 16+)\n' : ''}${platforms.includes('wasmJs') ? '- **Run Web App**: `./kotlin run -m webApp`\n' : ''}
 ## License
 MIT License
 `

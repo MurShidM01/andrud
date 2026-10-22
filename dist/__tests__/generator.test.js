@@ -105,6 +105,62 @@ test('Generator - End-to-End Project Scaffolding', async (t) => {
                 assert.strictEqual(result.success, true);
                 assert.strictEqual(result.errors.length, 0);
                 assert.ok(result.generatedFiles.length >= 16);
+                if (template === 'kotlin-multiplatform') {
+                    // Verify official Kotlin CLI root files exist and legacy single-platform Android files do not
+                    assert.strictEqual(await exists(join(projectDir, 'project.yaml')), true);
+                    assert.strictEqual(await exists(join(projectDir, 'libs.versions.toml')), true);
+                    assert.strictEqual(await exists(join(projectDir, 'kotlin')), true);
+                    assert.strictEqual(await exists(join(projectDir, 'kotlin.bat')), true);
+                    assert.strictEqual(await exists(join(projectDir, 'README.md')), true);
+                    assert.strictEqual(await exists(join(projectDir, '.gitignore')), true);
+                    // Ensure legacy Android-only / mixed directories are NOT created
+                    assert.strictEqual(await exists(join(projectDir, 'app')), false);
+                    assert.strictEqual(await exists(join(projectDir, 'gradle')), false);
+                    assert.strictEqual(await exists(join(projectDir, 'gradlew')), false);
+                    assert.strictEqual(await exists(join(projectDir, 'lib')), false);
+                    const projectYaml = await readFile(join(projectDir, 'project.yaml'));
+                    assert.ok(projectYaml.includes('- shared'));
+                    assert.ok(projectYaml.includes('- androidApp'));
+                    assert.ok(projectYaml.includes('- iosApp'));
+                    assert.ok(projectYaml.includes('- desktopApp'));
+                    assert.ok(projectYaml.includes('- webApp'));
+                    // Shared module checks
+                    assert.strictEqual(await exists(join(projectDir, 'shared/module.yaml')), true);
+                    assert.strictEqual(await exists(join(projectDir, 'shared/composeResources/drawable/compose-multiplatform.xml')), true);
+                    assert.strictEqual(await exists(join(projectDir, 'shared/src/App.kt')), true);
+                    assert.strictEqual(await exists(join(projectDir, 'shared/src/Greeting.kt')), true);
+                    assert.strictEqual(await exists(join(projectDir, 'shared/src/Platform.kt')), true);
+                    assert.strictEqual(await exists(join(projectDir, 'shared/src@android/Platform.android.kt')), true);
+                    assert.strictEqual(await exists(join(projectDir, 'shared/src@ios/Platform.ios.kt')), true);
+                    assert.strictEqual(await exists(join(projectDir, 'shared/src@jvm/Platform.jvm.kt')), true);
+                    assert.strictEqual(await exists(join(projectDir, 'shared/src@wasmJs/Platform.wasmJs.kt')), true);
+                    assert.strictEqual(await exists(join(projectDir, 'shared/test/PlatformTest.kt')), true);
+                    assert.strictEqual(await exists(join(projectDir, 'shared/test@android/PlatformAndroidTest.kt')), true);
+                    assert.strictEqual(await exists(join(projectDir, 'shared/test@ios/PlatformIosTest.kt')), true);
+                    assert.strictEqual(await exists(join(projectDir, 'shared/test@jvm/PlatformJvmTest.kt')), true);
+                    assert.strictEqual(await exists(join(projectDir, 'shared/test@wasmJs/PlatformWasmJsTest.kt')), true);
+                    // Platform app modules checks
+                    assert.strictEqual(await exists(join(projectDir, 'androidApp/module.yaml')), true);
+                    assert.strictEqual(await exists(join(projectDir, 'androidApp/proguard-rules.pro')), true);
+                    assert.strictEqual(await exists(join(projectDir, 'androidApp/src/AndroidManifest.xml')), true);
+                    assert.strictEqual(await exists(join(projectDir, 'androidApp/src/MainActivity.kt')), true);
+                    assert.strictEqual(await exists(join(projectDir, 'androidApp/res/mipmap-xxxhdpi/ic_launcher.png')), true);
+                    assert.strictEqual(await exists(join(projectDir, 'desktopApp/module.yaml')), true);
+                    assert.strictEqual(await exists(join(projectDir, 'desktopApp/resources/logback.xml')), true);
+                    assert.strictEqual(await exists(join(projectDir, 'desktopApp/src/main.kt')), true);
+                    assert.strictEqual(await exists(join(projectDir, 'iosApp/module.yaml')), true);
+                    assert.strictEqual(await exists(join(projectDir, 'iosApp/module.xcodeproj/project.pbxproj')), true);
+                    assert.strictEqual(await exists(join(projectDir, 'iosApp/module.xcodeproj/xcshareddata/xcschemes/app.xcscheme')), true);
+                    assert.strictEqual(await exists(join(projectDir, 'iosApp/src/Assets.xcassets/AppIcon.appiconset/app-icon-1024.png')), true);
+                    assert.strictEqual(await exists(join(projectDir, 'iosApp/src/Info.plist')), true);
+                    assert.strictEqual(await exists(join(projectDir, 'iosApp/src/ViewController.kt')), true);
+                    assert.strictEqual(await exists(join(projectDir, 'iosApp/src/iosApp.swift')), true);
+                    assert.strictEqual(await exists(join(projectDir, 'webApp/module.yaml')), true);
+                    assert.strictEqual(await exists(join(projectDir, 'webApp/resources/index.html')), true);
+                    assert.strictEqual(await exists(join(projectDir, 'webApp/resources/styles.css')), true);
+                    assert.strictEqual(await exists(join(projectDir, 'webApp/src/main.kt')), true);
+                    return;
+                }
                 // Check AndroidManifest references Application class
                 const manifest = await readFile(join(projectDir, 'app/src/main/AndroidManifest.xml'));
                 assert.ok(manifest.includes('android:name=".MyAppApplication"'));
@@ -120,34 +176,6 @@ test('Generator - End-to-End Project Scaffolding', async (t) => {
                 if (template === 'native-cpp') {
                     const cppContent = await readFile(join(projectDir, 'app/src/main/cpp/native-lib.cpp'));
                     assert.ok(cppContent.includes('Java_com_my_1org_my_1app_NativeLib_stringFromJNI'));
-                }
-                if (template === 'kotlin-multiplatform') {
-                    const rootGradle = await readFile(join(projectDir, 'build.gradle.kts'));
-                    assert.ok(rootGradle.includes('org.jetbrains.kotlin.multiplatform'));
-                    assert.ok(rootGradle.includes('org.jetbrains.compose'));
-                    const settingsGradle = await readFile(join(projectDir, 'settings.gradle.kts'));
-                    assert.ok(settingsGradle.includes('include(":shared")'));
-                    const sharedGradle = await readFile(join(projectDir, 'shared/build.gradle.kts'));
-                    assert.ok(sharedGradle.includes('kotlin.srcDir("../lib")'));
-                    assert.ok(sharedGradle.includes('kotlin.srcDir("../test")'));
-                    assert.strictEqual(await exists(join(projectDir, 'gradle/libs.versions.toml')), true);
-                    assert.strictEqual(await exists(join(projectDir, 'shared/build.gradle.kts')), true);
-                    assert.strictEqual(await exists(join(projectDir, 'lib/main.kt')), true);
-                    assert.strictEqual(await exists(join(projectDir, 'lib/App.kt')), true);
-                    assert.strictEqual(await exists(join(projectDir, 'lib/Platform.kt')), true);
-                    assert.strictEqual(await exists(join(projectDir, 'lib/Greeting.kt')), true);
-                    assert.strictEqual(await exists(join(projectDir, 'lib/ui/theme/Color.kt')), true);
-                    assert.strictEqual(await exists(join(projectDir, 'lib/ui/theme/Type.kt')), true);
-                    assert.strictEqual(await exists(join(projectDir, 'lib/ui/theme/Theme.kt')), true);
-                    assert.strictEqual(await exists(join(projectDir, 'test/GreetingTest.kt')), true);
-                    assert.strictEqual(await exists(join(projectDir, 'shared/src/androidMain/kotlin/com/my_org/my_app/shared/Platform.android.kt')), true);
-                    assert.strictEqual(await exists(join(projectDir, 'shared/src/iosMain/kotlin/com/my_org/my_app/shared/Platform.ios.kt')), true);
-                    assert.strictEqual(await exists(join(projectDir, 'shared/src/desktopMain/kotlin/com/my_org/my_app/shared/Platform.jvm.kt')), true);
-                    assert.strictEqual(await exists(join(projectDir, 'shared/src/wasmJsMain/kotlin/com/my_org/my_app/shared/Platform.wasmJs.kt')), true);
-                    assert.strictEqual(await exists(join(projectDir, 'shared/src/wasmJsMain/kotlin/com/my_org/my_app/shared/main.kt')), true);
-                    assert.strictEqual(await exists(join(projectDir, 'shared/src/wasmJsMain/resources/index.html')), true);
-                    assert.strictEqual(await exists(join(projectDir, 'iosApp/iosApp/Info.plist')), true);
-                    assert.strictEqual(await exists(join(projectDir, 'iosApp/iosApp/ContentView.swift')), true);
                 }
             }
             finally {

@@ -243,12 +243,15 @@ export async function createKmpCommand(name, options = {}) {
         console.log(pc.gray('─'.repeat(50)));
         console.log('');
         console.log(pc.gray(`  cd ${projectDirectory}`));
-        console.log(pc.gray('  ./gradlew :app:assembleDebug'));
+        console.log(pc.gray('  ./kotlin build'));
+        if (platforms.includes('android')) {
+            console.log(pc.gray('  ./kotlin run -m androidApp'));
+        }
         if (platforms.includes('desktop')) {
-            console.log(pc.gray('  ./gradlew :shared:run'));
+            console.log(pc.gray('  ./kotlin run -m desktopApp'));
         }
         if (platforms.includes('wasmJs')) {
-            console.log(pc.gray('  ./gradlew :shared:wasmJsBrowserDevelopmentRun'));
+            console.log(pc.gray('  ./kotlin run -m webApp'));
         }
         console.log('');
     }

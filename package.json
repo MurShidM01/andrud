@@ -48,9 +48,10 @@
     "mobile-development"
   ],
   "scripts": {
-    "clean": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\"",
+    "clean": "node bin/clean.js",
     "build": "npm run clean && tsc",
     "build:all": "npm run build",
+    "prepare": "npm run build",
     "typecheck": "tsc --noEmit",
     "dev": "npm run build && node bin/andrud.js",
     "link": "npm run build && npm link",

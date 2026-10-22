@@ -11,6 +11,7 @@ import { createNewCommand } from '../cli/commands/new.js';
 import { createKmpCommand } from '../cli/commands/kmp.js';
 import { createListCommand } from '../cli/commands/list.js';
 import { createInfoCommand } from '../cli/commands/info.js';
+import { createDoctorCommand } from '../cli/commands/doctor.js';
 import { kotlinMultiplatformPlugin } from '../plugins/kotlin-multiplatform.js';
 import { getPackageVersion } from '../utils/version.js';
 import { exists } from '../utils/filesystem.js';
@@ -91,17 +92,26 @@ test('CLI Commands & KMP Plugin', async (t) => {
                 force: true
             }));
             const createdDir = join(tempRoot, 'crossplatformapp');
-            assert.strictEqual(await exists(join(createdDir, 'shared/build.gradle.kts')), true);
-            assert.strictEqual(await exists(join(createdDir, 'gradle/libs.versions.toml')), true);
-            assert.strictEqual(await exists(join(createdDir, 'lib/main.kt')), true);
-            assert.strictEqual(await exists(join(createdDir, 'lib/App.kt')), true);
-            assert.strictEqual(await exists(join(createdDir, 'lib/Platform.kt')), true);
-            assert.strictEqual(await exists(join(createdDir, 'lib/Greeting.kt')), true);
-            assert.strictEqual(await exists(join(createdDir, 'lib/ui/theme/Theme.kt')), true);
-            assert.strictEqual(await exists(join(createdDir, 'test/GreetingTest.kt')), true);
-            assert.strictEqual(await exists(join(createdDir, 'shared/src/desktopMain/kotlin/com/example/crossplatform/shared/main.kt')), true);
+            assert.strictEqual(await exists(join(createdDir, 'project.yaml')), true);
+            assert.strictEqual(await exists(join(createdDir, 'libs.versions.toml')), true);
+            assert.strictEqual(await exists(join(createdDir, 'kotlin')), true);
+            assert.strictEqual(await exists(join(createdDir, 'kotlin.bat')), true);
+            assert.strictEqual(await exists(join(createdDir, 'shared/module.yaml')), true);
+            assert.strictEqual(await exists(join(createdDir, 'shared/src/App.kt')), true);
+            assert.strictEqual(await exists(join(createdDir, 'shared/src/Platform.kt')), true);
+            assert.strictEqual(await exists(join(createdDir, 'shared/src/Greeting.kt')), true);
+            assert.strictEqual(await exists(join(createdDir, 'shared/test/PlatformTest.kt')), true);
+            assert.strictEqual(await exists(join(createdDir, 'androidApp/module.yaml')), true);
+            assert.strictEqual(await exists(join(createdDir, 'androidApp/src/MainActivity.kt')), true);
+            assert.strictEqual(await exists(join(createdDir, 'desktopApp/module.yaml')), true);
+            assert.strictEqual(await exists(join(createdDir, 'desktopApp/src/main.kt')), true);
+            assert.strictEqual(await exists(join(createdDir, 'iosApp/module.yaml')), true);
+            assert.strictEqual(await exists(join(createdDir, 'iosApp/src/ViewController.kt')), true);
             // wasmJs was not requested in platforms: 'android,ios,desktop'
-            assert.strictEqual(await exists(join(createdDir, 'shared/src/wasmJsMain/kotlin/com/example/crossplatform/shared/Platform.wasmJs.kt')), false);
+            assert.strictEqual(await exists(join(createdDir, 'webApp/module.yaml')), false);
+            assert.strictEqual(await exists(join(createdDir, 'shared/src@wasmJs/Platform.wasmJs.kt')), false);
+            // Ensure single-platform Android app/ directory is not generated
+            assert.strictEqual(await exists(join(createdDir, 'app')), false);
         }
         finally {
             rmSync(tempRoot, { recursive: true, force: true });
@@ -116,6 +126,13 @@ test('CLI Commands & KMP Plugin', async (t) => {
         const parsedInfo = JSON.parse(infoOutput.join('\n'));
         assert.strictEqual(parsedInfo.id, 'kotlin-multiplatform');
         assert.deepStrictEqual(parsedInfo.platforms, ['android', 'ios', 'desktop', 'wasmJs']);
+    });
+    await t.test('createDoctorCommand should return valid environment diagnostic JSON', async () => {
+        const doctorOutput = await captureConsoleOutput(() => createDoctorCommand({ json: true }));
+        const parsedDoctor = JSON.parse(doctorOutput.join('\n'));
+        assert.strictEqual(parsedDoctor.version, '1.0.6');
+        assert.strictEqual(Array.isArray(parsedDoctor.checks), true);
+        assert.ok(parsedDoctor.checks.some((c) => c.name === 'Node.js Runtime'));
     });
 });
 //# sourceMappingURL=cli.test.js.map

@@ -26,6 +26,7 @@ import {
   generateAppIcon,
   generateActivityLayout,
   generateSourceSetFiles,
+  generateKmpFiles,
   getKmpDirectories
 } from '../templates/index.js';
 import pc from 'picocolors';
@@ -79,6 +80,22 @@ export async function prepareProjectStructure(
   const createdPaths: string[] = [];
   const errors: string[] = [];
 
+  await createDirectory(projectPath);
+
+  if (context.template === 'kotlin-multiplatform') {
+    const kmpDirs = getKmpDirectories(context);
+    for (const dir of kmpDirs) {
+      const fullPath = join(projectPath, dir);
+      try {
+        await createDirectory(fullPath);
+        createdPaths.push(dir);
+      } catch (error) {
+        errors.push(`Failed to create directory ${dir}: ${(error as Error).message}`);
+      }
+    }
+    return { success: errors.length === 0, createdPaths, errors };
+  }
+
   const packagePath = context.packageName.replace(/\./g, '/');
   const sourceRoot = context.language === 'kotlin' ? 'kotlin' : 'java';
 
@@ -106,13 +123,6 @@ export async function prepareProjectStructure(
     directories.push('app/src/main/cpp');
   }
 
-  // Add Kotlin Multiplatform directories
-  if (context.template === 'kotlin-multiplatform') {
-    directories.push(...getKmpDirectories(context));
-  }
-
-  await createDirectory(projectPath);
-
   for (const dir of directories) {
     const fullPath = join(projectPath, dir);
     try {
@@ -130,6 +140,14 @@ export async function prepareProjectStructure(
  * Assemble the complete list of files to generate for a given template context
  */
 export function collectProjectFiles(context: TemplateContext): GeneratedFile[] {
+  if (context.template === 'kotlin-multiplatform') {
+    return [
+      context.git ? generateGitIgnore(context) : null,
+      context.readme ? generateReadme(context) : null,
+      ...generateKmpFiles(context)
+    ].filter((f): f is GeneratedFile => f !== null);
+  }
+
   return [
     generateSettingsGradle(context),
     generateRootBuildGradle(context),
