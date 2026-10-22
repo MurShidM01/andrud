@@ -15,7 +15,7 @@ export declare function getKmpPlatforms(ctx: TemplateContext): KmpPlatform[];
 export declare function getKmpDirectories(ctx: TemplateContext): string[];
 export declare function generateKmpProjectYaml(ctx: TemplateContext): GeneratedFile;
 export declare function generateKmpVersionCatalog(ctx: TemplateContext): GeneratedFile;
-export declare function generateKotlinCliUnixWrapper(_ctx: TemplateContext): GeneratedFile;
+export declare function generateKotlinCliUnixWrapper(ctx: TemplateContext): GeneratedFile;
 export declare function generateKotlinCliWindowsWrapper(_ctx: TemplateContext): GeneratedFile;
 export declare function generateKmpSharedModuleYaml(ctx: TemplateContext): GeneratedFile;
 export declare const generateKmpSharedBuildGradle: typeof generateKmpSharedModuleYaml;

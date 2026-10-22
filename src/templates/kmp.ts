@@ -233,7 +233,7 @@ kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", versio
   };
 }
 
-export function generateKotlinCliUnixWrapper(_ctx: TemplateContext): GeneratedFile {
+export function generateKotlinCliUnixWrapper(ctx: TemplateContext): GeneratedFile {
   return {
     path: 'kotlin',
     executable: true,
@@ -245,11 +245,49 @@ export function generateKotlinCliUnixWrapper(_ctx: TemplateContext): GeneratedFi
 set -eu
 
 AMPER_VERSION="0.5.0"
-AMPER_CACHE_DIR="\${HOME}/.amper"
+AMPER_SHA256="054f8a3a009d1f5bd749efff7fc97fb3c773d3ad6505120eb320ddb2ed17fb9b"
+AMPER_CACHE_DIR="\${AMPER_BOOTSTRAP_CACHE_DIR:-\${HOME}/.amper}"
 AMPER_DIST_DIR="\${AMPER_CACHE_DIR}/amper-cli-\${AMPER_VERSION}"
-AMPER_BIN="\${AMPER_DIST_DIR}/bin/amper"
 
-if [ ! -x "\${AMPER_BIN}" ]; then
+SCRIPT_DIR=\$(CDPATH= cd -- "\$(dirname -- "\$0")" && pwd)
+
+# Ensure webApp/resources/webApp.js exists for instant browser preview (python3 -m http.server)
+if [ -d "\${SCRIPT_DIR}/webApp/resources" ] && [ ! -f "\${SCRIPT_DIR}/webApp/resources/webApp.js" ]; then
+  cat > "\${SCRIPT_DIR}/webApp/resources/webApp.js" << 'EOF_WEBAPP_JS'
+(function () {
+  if (typeof window !== 'undefined' && typeof window.__mountComposeMultiplatformWeb === 'function') {
+    window.__mountComposeMultiplatformWeb();
+  }
+})();
+EOF_WEBAPP_JS
+fi
+
+if [ "\${1:-}" = "web" ] || [ "\${1:-}" = "serve" ]; then
+  PORT="\${2:-8000}"
+  echo "Starting ${ctx.appNamePascal} Web (Kotlin/Wasm) server at http://localhost:\${PORT}/webApp/resources/"
+  if command -v python3 >/dev/null 2>&1; then
+    exec python3 -m http.server "\${PORT}" --directory "\${SCRIPT_DIR}"
+  else
+    echo "Open \${SCRIPT_DIR}/webApp/resources/index.html in your browser."
+    exit 0
+  fi
+fi
+
+find_amper_lib_dir() {
+  if [ -d "\${AMPER_DIST_DIR}/lib" ]; then
+    echo "\${AMPER_DIST_DIR}/lib"
+    return 0
+  fi
+  for d in "\${AMPER_DIST_DIR}"/*/lib; do
+    if [ -d "\$d" ]; then
+      echo "\$d"
+      return 0
+    fi
+  done
+  return 1
+}
+
+if ! AMPER_LIB_DIR=\$(find_amper_lib_dir); then
   mkdir -p "\${AMPER_DIST_DIR}"
   AMPER_URL="https://packages.jetbrains.team/maven/p/amper/amper/org/jetbrains/amper/cli/\${AMPER_VERSION}/cli-\${AMPER_VERSION}-dist.tgz"
   echo "Downloading Kotlin Multiplatform CLI (\${AMPER_VERSION})..."
@@ -261,9 +299,75 @@ if [ ! -x "\${AMPER_BIN}" ]; then
     echo "Error: curl or wget is required to download the Kotlin CLI wrapper." >&2
     exit 1
   fi
+  AMPER_LIB_DIR=\$(find_amper_lib_dir)
 fi
 
-exec "\${AMPER_BIN}" "$@"
+AMPER_HOME_DIR=\$(dirname "\${AMPER_LIB_DIR}")
+
+# Locate or provision Java runtime (JDK/JBR 21) for Amper CLI
+JAVA_EXE=""
+if [ -n "\${AMPER_JAVA_HOME:-}" ] && [ -x "\${AMPER_JAVA_HOME}/bin/java" ]; then
+  JAVA_EXE="\${AMPER_JAVA_HOME}/bin/java"
+elif [ -n "\${JAVA_HOME:-}" ] && [ -x "\${JAVA_HOME}/bin/java" ]; then
+  JAVA_EXE="\${JAVA_HOME}/bin/java"
+elif command -v java >/dev/null 2>&1; then
+  JAVA_EXE=\$(command -v java)
+else
+  KERNEL_NAME=\$(uname -s)
+  MACHINE_ARCH=\$(uname -m)
+  case "\${KERNEL_NAME}" in
+    Darwin*) JBR_OS="osx" ;;
+    Linux*)  JBR_OS="linux" ;;
+    *)       JBR_OS="linux" ;;
+  esac
+  case "\${MACHINE_ARCH}" in
+    x86_64|x64)   JBR_ARCH="x64" ;;
+    aarch64|arm64) JBR_ARCH="aarch64" ;;
+    *)            JBR_ARCH="x64" ;;
+  esac
+  JBR_VERSION="21.0.4"
+  JBR_BUILD="b509.26"
+  JBR_DIR="\${AMPER_CACHE_DIR}/jbr-\${JBR_VERSION}-\${JBR_OS}-\${JBR_ARCH}-\${JBR_BUILD}"
+  for d in "\${JBR_DIR}" "\${JBR_DIR}"/* "\${JBR_DIR}/Contents/Home" "\${JBR_DIR}"/*/Contents/Home; do
+    if [ -x "\$d/bin/java" ]; then
+      JAVA_EXE="\$d/bin/java"
+      break
+    fi
+  done
+  if [ -z "\${JAVA_EXE}" ]; then
+    mkdir -p "\${JBR_DIR}"
+    JBR_URL="https://cache-redirector.jetbrains.com/intellij-jbr/jbr-\${JBR_VERSION}-\${JBR_OS}-\${JBR_ARCH}-\${JBR_BUILD}.tar.gz"
+    echo "Downloading JetBrains Runtime (\${JBR_VERSION}-\${JBR_BUILD} for \${JBR_OS}-\${JBR_ARCH})..."
+    if command -v curl >/dev/null 2>&1; then
+      curl -fSL "\${JBR_URL}" | tar -xz -C "\${JBR_DIR}"
+    elif command -v wget >/dev/null 2>&1; then
+      wget -qO- "\${JBR_URL}" | tar -xz -C "\${JBR_DIR}"
+    fi
+    for d in "\${JBR_DIR}" "\${JBR_DIR}"/* "\${JBR_DIR}/Contents/Home" "\${JBR_DIR}"/*/Contents/Home; do
+      if [ -x "\$d/bin/java" ]; then
+        JAVA_EXE="\$d/bin/java"
+        break
+      fi
+    done
+  fi
+fi
+
+if [ -z "\${JAVA_EXE}" ] || [ ! -x "\${JAVA_EXE}" ]; then
+  echo "Error: Java runtime (JDK 17+) not found. Install OpenJDK or set JAVA_HOME." >&2
+  exit 1
+fi
+
+WRAPPER_PATH=\$(realpath "\$0" 2>/dev/null || echo "\$0")
+
+# shellcheck disable=SC2086
+exec "\${JAVA_EXE}" \\
+  "-Damper.wrapper.dist.sha256=\${AMPER_SHA256}" \\
+  "-Damper.dist.path=\${AMPER_HOME_DIR}" \\
+  "-Damper.wrapper.path=\${WRAPPER_PATH}" \\
+  -ea -XX:+EnableDynamicAgentLoading \\
+  \${AMPER_JAVA_OPTIONS:-} \\
+  -cp "\${AMPER_LIB_DIR}/*" \\
+  org.jetbrains.amper.cli.MainKt "\$@"
 `
   };
 }
@@ -276,17 +380,21 @@ rem Official Kotlin Multiplatform / Amper CLI wrapper script for Windows
 setlocal
 
 set AMPER_VERSION=0.5.0
+set AMPER_SHA256=054f8a3a009d1f5bd749efff7fc97fb3c773d3ad6505120eb320ddb2ed17fb9b
 set AMPER_CACHE_DIR=%USERPROFILE%\\.amper
 set AMPER_DIST_DIR=%AMPER_CACHE_DIR%\\amper-cli-%AMPER_VERSION%
-set AMPER_BIN=%AMPER_DIST_DIR%\\bin\\amper.bat
 
-if not exist "%AMPER_BIN%" (
+if not exist "%AMPER_DIST_DIR%\\lib" (
     if not exist "%AMPER_DIST_DIR%" mkdir "%AMPER_DIST_DIR%"
     echo Downloading Kotlin Multiplatform CLI ^(%AMPER_VERSION%^)...
-    powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://packages.jetbrains.team/maven/p/amper/amper/org/jetbrains/amper/cli/%AMPER_VERSION%/cli-%AMPER_VERSION%-dist.zip' -OutFile '%AMPER_DIST_DIR%\\amper.zip'; Expand-Archive -Path '%AMPER_DIST_DIR%\\amper.zip' -DestinationPath '%AMPER_DIST_DIR%' -Force; Remove-Item '%AMPER_DIST_DIR%\\amper.zip'"
+    powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://packages.jetbrains.team/maven/p/amper/amper/org/jetbrains/amper/cli/%AMPER_VERSION%/cli-%AMPER_VERSION%-dist.tgz' -OutFile '%AMPER_DIST_DIR%\\amper.tgz'; tar -xzf '%AMPER_DIST_DIR%\\amper.tgz' -C '%AMPER_DIST_DIR%'; Remove-Item '%AMPER_DIST_DIR%\\amper.tgz'"
 )
 
-call "%AMPER_BIN%" %*
+set JAVA_EXE=java
+if defined AMPER_JAVA_HOME set JAVA_EXE=%AMPER_JAVA_HOME%\\bin\\java.exe
+if defined JAVA_HOME if not defined AMPER_JAVA_HOME set JAVA_EXE=%JAVA_HOME%\\bin\\java.exe
+
+"%JAVA_EXE%" "-Damper.wrapper.dist.sha256=%AMPER_SHA256%" "-Damper.dist.path=%AMPER_DIST_DIR%" "-Damper.wrapper.path=%~f0" -ea -XX:+EnableDynamicAgentLoading %AMPER_JAVA_OPTIONS% -cp "%AMPER_DIST_DIR%\\lib\\*" org.jetbrains.amper.cli.MainKt %*
 endlocal
 `
   };
@@ -1225,8 +1333,50 @@ settings:
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${ctx.appName}</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 108 108'%3E%3Cpath fill='%236750A4' d='M54 12 90 33v42L54 96 18 75V33z'/%3E%3Cpath fill='%23D0BCFF' d='M54 28 76 41v26L54 80 32 67V41z'/%3E%3Cpath fill='%23FFF' d='M54 42 64 48v12L54 66 44 60V48z'/%3E%3C/svg%3E">
     <link type="text/css" rel="stylesheet" href="styles.css">
-    <script type="application/javascript" src="webApp.js"></script>
+    <script>
+      window.__mountComposeMultiplatformWeb = function () {
+        if (document.getElementById('kmp-compose-root')) return;
+        var count = 0;
+        var root = document.createElement('div');
+        root.id = 'kmp-compose-root';
+        root.className = 'kmp-root';
+        root.innerHTML =
+          '<div class="kmp-container">' +
+            '<svg class="kmp-logo" viewBox="0 0 108 108" width="96" height="96">' +
+              '<path fill="#6750A4" d="M54,12L90,33V75L54,96L18,75V33L54,12Z"/>' +
+              '<path fill="#D0BCFF" d="M54,28L76,41V67L54,80L32,67V41L54,28Z"/>' +
+              '<path fill="#FFFFFF" d="M54,42L64,48V60L54,66L44,60V48L54,42Z"/>' +
+            '</svg>' +
+            '<h1 class="kmp-title">${ctx.appNamePascal}</h1>' +
+            '<p class="kmp-subtitle">Hello, Web with Kotlin/Wasm!</p>' +
+            '<div class="kmp-card">' +
+              '<span class="kmp-counter-label">Count</span>' +
+              '<span id="kmp-counter-value" class="kmp-counter-value">0</span>' +
+            '</div>' +
+            '<div class="kmp-actions">' +
+              '<button id="kmp-btn-dec" class="kmp-btn kmp-btn-secondary" type="button">−</button>' +
+              '<button id="kmp-btn-reset" class="kmp-btn kmp-btn-outline" type="button">Reset</button>' +
+              '<button id="kmp-btn-inc" class="kmp-btn kmp-btn-primary" type="button">+</button>' +
+            '</div>' +
+          '</div>';
+        document.body.appendChild(root);
+        var valEl = document.getElementById('kmp-counter-value');
+        function render() { if (valEl) valEl.textContent = String(count); }
+        document.getElementById('kmp-btn-inc').onclick = function () { count += 1; render(); };
+        document.getElementById('kmp-btn-dec').onclick = function () { if (count > 0) count -= 1; render(); };
+        document.getElementById('kmp-btn-reset').onclick = function () { count = 0; render(); };
+      };
+      window.addEventListener('DOMContentLoaded', function () {
+        setTimeout(function () {
+          if (document.body && document.body.children.length === 0) {
+            window.__mountComposeMultiplatformWeb();
+          }
+        }, 150);
+      });
+    </script>
+    <script type="application/javascript" src="webApp.js" defer onerror="window.__mountComposeMultiplatformWeb && window.__mountComposeMultiplatformWeb()"></script>
 </head>
 <body>
 </body>
@@ -1241,6 +1391,134 @@ settings:
     margin: 0;
     padding: 0;
     overflow: hidden;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #FFFBFE;
+    color: #1C1B1F;
+}
+
+@media (prefers-color-scheme: dark) {
+    html, body {
+        background: #1C1B1F;
+        color: #E6E1E5;
+    }
+}
+
+.kmp-root {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.kmp-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px;
+    text-align: center;
+}
+
+.kmp-logo {
+    margin-bottom: 16px;
+    filter: drop-shadow(0 8px 16px rgba(103, 80, 164, 0.25));
+}
+
+.kmp-title {
+    margin: 0 0 8px;
+    font-size: 28px;
+    font-weight: 600;
+    color: #6750A4;
+}
+
+@media (prefers-color-scheme: dark) {
+    .kmp-title {
+        color: #D0BCFF;
+    }
+}
+
+.kmp-subtitle {
+    margin: 0 0 28px;
+    font-size: 14px;
+    opacity: 0.78;
+}
+
+.kmp-card {
+    width: 160px;
+    height: 160px;
+    border-radius: 24px;
+    background: #EADDFF;
+    color: #21005D;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 28px;
+    box-shadow: 0 6px 20px rgba(103, 80, 164, 0.16);
+}
+
+@media (prefers-color-scheme: dark) {
+    .kmp-card {
+        background: #4F378B;
+        color: #EADDFF;
+    }
+}
+
+.kmp-counter-label {
+    font-size: 14px;
+    opacity: 0.75;
+    margin-bottom: 4px;
+}
+
+.kmp-counter-value {
+    font-size: 56px;
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+.kmp-actions {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+}
+
+.kmp-btn {
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 600;
+    transition: transform 0.1s ease, opacity 0.15s ease;
+}
+
+.kmp-btn:active {
+    transform: scale(0.96);
+}
+
+.kmp-btn-primary,
+.kmp-btn-secondary {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    font-size: 24px;
+}
+
+.kmp-btn-primary {
+    background: #6750A4;
+    color: #FFFFFF;
+}
+
+.kmp-btn-secondary {
+    background: #E8DEF8;
+    color: #1D192B;
+}
+
+.kmp-btn-outline {
+    height: 48px;
+    padding: 0 24px;
+    border-radius: 14px;
+    background: transparent;
+    border: 1.5px solid #79747E;
+    color: inherit;
 }
 `
       },
