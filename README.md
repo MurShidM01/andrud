@@ -78,8 +78,11 @@ _Last verification: 2026-06-02._
 # Install globally via npm
 npm install -g andrud
 
+# Or install directly from GitHub
+npm install -g git+https://github.com/MurShidM01/andrud.git
+
 # Verify installation
-andrud --version
+andrud -v
 ```
 
 ### Create a New Project
@@ -105,6 +108,7 @@ andrud new MyApp
 | andrud init | Initialize a project in the current directory |
 | andrud list | Show all available templates |
 | andrud info template | View template details |
+| andrud doctor | Check Android & Kotlin Multiplatform environment setup |
 
 ---
 
@@ -170,13 +174,13 @@ $ andrud list
 
 ## Project Structure
 
-Generated projects include:
+Generated Android projects include:
 
 ```
 MyApp/
 ├── app/
 │   ├── src/main/
-│   │   ├── java/          # Java/Kotlin source files
+│   │   ├── kotlin/        # Kotlin/Java source files
 │   │   ├── res/           # Resources (layouts, values, drawables)
 │   │   ├── AndroidManifest.xml
 │   │   └── ...
@@ -188,6 +192,72 @@ MyApp/
 ├── gradle.properties      # Gradle properties
 ├── .gitignore
 └── README.md
+```
+
+Generated Kotlin Multiplatform (`kotlin-multiplatform` / `andrud kmp`) projects follow the official Kotlin CLI structure:
+
+```
+Kotlin-Multi/
+├── README.md
+├── androidApp/
+│   ├── module.yaml
+│   ├── proguard-rules.pro
+│   ├── res/
+│   └── src/
+│       ├── AndroidManifest.xml
+│       └── MainActivity.kt
+├── desktopApp/
+│   ├── module.yaml
+│   ├── resources/
+│   │   └── logback.xml
+│   └── src/
+│       └── main.kt
+├── iosApp/
+│   ├── module.xcodeproj/
+│   ├── module.yaml
+│   └── src/
+│       ├── Assets.xcassets/
+│       ├── Info.plist
+│       ├── ViewController.kt
+│       └── iosApp.swift
+├── kotlin
+├── kotlin.bat
+├── libs.versions.toml
+├── project.yaml
+├── shared/
+│   ├── composeResources/
+│   │   └── drawable/
+│   │       └── compose-multiplatform.xml
+│   ├── module.yaml
+│   ├── src/
+│   │   ├── App.kt
+│   │   ├── Greeting.kt
+│   │   └── Platform.kt
+│   ├── src@android/
+│   │   └── Platform.android.kt
+│   ├── src@ios/
+│   │   └── Platform.ios.kt
+│   ├── src@jvm/
+│   │   └── Platform.jvm.kt
+│   ├── src@wasmJs/
+│   │   └── Platform.wasmJs.kt
+│   ├── test/
+│   │   └── PlatformTest.kt
+│   ├── test@android/
+│   │   └── PlatformAndroidTest.kt
+│   ├── test@ios/
+│   │   └── PlatformIosTest.kt
+│   ├── test@jvm/
+│   │   └── PlatformJvmTest.kt
+│   └── test@wasmJs/
+│       └── PlatformWasmJsTest.kt
+└── webApp/
+    ├── module.yaml
+    ├── resources/
+    │   ├── index.html
+    │   └── styles.css
+    └── src/
+        └── main.kt
 ```
 
 ---

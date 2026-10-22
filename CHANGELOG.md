@@ -20,9 +20,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Kotlin Multiplatform (KMP) Plugin & Cross-Platform Template (`kotlin-multiplatform` / `kmp`)**:
   - Added `kotlinMultiplatformPlugin` (`src/plugins/kotlin-multiplatform.ts`) and dedicated `andrud kmp [name]` CLI command.
-  - Added Flutter-style top-level **`lib/`** directory (`lib/main.kt`, `lib/App.kt`, `lib/Platform.kt`, `lib/Greeting.kt`, `lib/ui/theme/Color.kt`, `lib/ui/theme/Type.kt`, `lib/ui/theme/Theme.kt`) and **`test/`** directory (`test/GreetingTest.kt`) where all cross-platform public code lives in one place, wired directly into `commonMain` (`kotlin.srcDir("../lib")`) and `commonTest` (`kotlin.srcDir("../test")`).
-  - Added cross-platform target scaffolding for **Android**, **iOS** (`iosX64`, `iosArm64`, `iosSimulatorArm64` + SwiftUI `iosApp` with `Info.plist`), **Desktop (JVM)** (`main.kt` + native distribution config), and **Web (Kotlin/Wasm)** (`ComposeViewport` `main.kt` + `index.html`).
-  - Added Gradle Version Catalog (`gradle/libs.versions.toml`) generation for Kotlin Multiplatform projects.
+  - Structured Kotlin Multiplatform projects to match the **official Kotlin CLI (Amper)** multiplatform project layout:
+    - Root: `project.yaml`, `libs.versions.toml`, `kotlin` & `kotlin.bat` CLI wrappers, `README.md`, `.gitignore`.
+    - `shared/`: `module.yaml`, `composeResources/drawable/compose-multiplatform.xml`, `src/{App,Greeting,Platform}.kt`, `src@{android,ios,jvm,wasmJs}/Platform.*.kt`, `test/PlatformTest.kt`, and `test@{android,ios,jvm,wasmJs}/Platform*Test.kt`.
+    - `androidApp/`: `module.yaml`, `proguard-rules.pro`, `res/` (`drawable`, `drawable-v24`, `mipmap-anydpi-v26`, `mipmap-{mdpi,hdpi,xhdpi,xxhdpi,xxxhdpi}`, `values/strings.xml`), and `src/{AndroidManifest.xml,MainActivity.kt}`.
+    - `desktopApp/`: `module.yaml`, `resources/logback.xml`, and `src/main.kt`.
+    - `iosApp/`: `module.yaml`, `module.xcodeproj/`, and `src/{Assets.xcassets,Info.plist,ViewController.kt,iosApp.swift}`.
+    - `webApp/`: `module.yaml`, `resources/{index.html,styles.css}`, and `src/main.kt`.
+- **Environment & Toolchain Diagnostics (`andrud doctor`)**:
+  - Added `andrud doctor [--json]` command to verify Node.js runtime, Java/JDK, Android SDK (`ANDROID_HOME`), Git, and Kotlin CLI wrapper status.
+- **Global Git Installation Support**:
+  - Added `"prepare": "npm run build"`, `"build": "npm run clean && tsc"`, `"build:all": "npm run build"`, and `bin/clean.js` with `0755` executable mode on `bin/andrud.js` so `npm install -g git+https://github.com/MurShidM01/andrud.git` installs cleanly and registers `andrud` globally (`andrud -v`).
 
 ### Changed
 - Updated default Android SDK configuration across all templates to **minSdk 24 (Android 7.0)** and **targetSdk / compileSdk 37 (Android 17)**.

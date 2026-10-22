@@ -36,6 +36,8 @@ export {
   generateSourceSetFiles,
   getKmpPlatforms,
   getKmpDirectories,
+  generateKmpProjectYaml,
+  generateKmpSharedModuleYaml,
   generateKmpVersionCatalog,
   generateKmpSharedBuildGradle,
   generateKmpFiles
@@ -135,3 +137,4 @@ export {
   getPackageVersion
 } from './utils/index.js';
 export { runCli } from './cli/index.js';
+export { createDoctorCommand, runDoctorChecks } from './cli/commands/doctor.js';

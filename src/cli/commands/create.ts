@@ -300,7 +300,11 @@ export async function createCommand(
     console.log(pc.gray('─'.repeat(50)));
     console.log('');
     console.log(pc.gray(`  cd ${projectDirectory}`));
-    console.log(pc.gray('  ./gradlew assembleDebug'));
+    if (selectedTemplate === 'kotlin-multiplatform') {
+      console.log(pc.gray('  ./kotlin build'));
+    } else {
+      console.log(pc.gray('  ./gradlew assembleDebug'));
+    }
     console.log(pc.gray('  studio .'));
     console.log('');
   } else {
