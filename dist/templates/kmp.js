@@ -214,6 +214,10 @@ if [ "\${1:-}" = "web" ] || [ "\${1:-}" = "serve" ]; then
   fi
 fi
 
+if [ "\${1:-}" = "show" ] && [ -n "\${2:-}" ]; then
+  shift
+fi
+
 find_amper_lib_dir() {
   if [ -d "\${AMPER_DIST_DIR}/lib" ]; then
     echo "\${AMPER_DIST_DIR}/lib"
@@ -352,26 +356,31 @@ export function generateKmpSharedModuleYaml(ctx) {
         targetList.push('    - jvm');
     }
     if (platforms.includes('wasmJs')) {
-        targetList.push('    - wasmJs');
+        targetList.push('    - wasm');
     }
+    const aliasesSection = platforms.includes('wasmJs')
+        ? `\naliases:\n  - wasmJs:\n      - wasm\n`
+        : '';
+    const coroutinesVersion = ctx.kmp?.coroutinesVersion || '1.9.0';
+    const amperMinSdk = Math.min(ctx.android.minSdk, 35);
     return {
         path: 'shared/module.yaml',
         content: `product:
   type: lib
   platforms:
 ${targetList.join('\n')}
-
+${aliasesSection}
 dependencies:
-  - $compose.runtime
-  - $compose.foundation
-  - $compose.material3
-  - $compose.ui
-  - $compose.components.resources
-  - $compose.components.uiToolingPreview
-  - $libs.androidx.lifecycle.viewmodel
-  - $libs.androidx.lifecycle.runtime.compose
-  - $libs.kotlinx.coroutines.core
-  - $libs.kotlinx.serialization.json
+  - $compose.runtime: exported
+  - $compose.foundation: exported
+  - $compose.material3: exported
+  - $compose.ui: exported
+  - $compose.components.resources: exported
+  - $compose.preview
+  - org.jetbrains.androidx.lifecycle:lifecycle-viewmodel:${ANDROIDX_VERSIONS.LIFECYCLE}
+  - org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose:${ANDROIDX_VERSIONS.LIFECYCLE}
+  - org.jetbrains.kotlinx:kotlinx-coroutines-core:${coroutinesVersion}
+  - $kotlin.serialization.json
 
 test-dependencies:
   - $kotlin.test
@@ -385,8 +394,7 @@ settings:
       packageName: ${ctx.packageName}.shared.generated.resources
   android:
     namespace: ${ctx.packageName}.shared
-    compileSdk: ${ctx.android.compileSdk}
-    minSdk: ${ctx.android.minSdk}
+    minSdk: ${amperMinSdk}
 `
     };
 }
@@ -704,18 +712,14 @@ dependencies:
   - $compose.material3
   - $compose.ui
   - $compose.uiTooling
-  - $libs.androidx.core.ktx
-  - $libs.androidx.activity.compose
+  - androidx.core:core-ktx:${ANDROIDX_VERSIONS.CORE_KTX}
+  - androidx.activity:activity-compose:${ANDROIDX_VERSIONS.ACTIVITY}
 
 settings:
   compose: enabled
   android:
     namespace: ${ctx.packageName}
-    applicationId: ${ctx.packageName}
-    compileSdk: ${ctx.android.compileSdk}
-    minSdk: ${ctx.android.minSdk}
-    targetSdk: ${ctx.android.targetSdk}
-    versionCode: 1
+    minSdk: ${Math.min(ctx.android.minSdk, 35)}
     versionName: "1.0"
 `
         }, {
@@ -884,8 +888,8 @@ class PlatformJvmTest {
 dependencies:
   - ../shared
   - $compose.desktop.currentOs
-  - $libs.kotlinx.coroutines.swing
-  - $libs.logback.classic
+  - org.jetbrains.kotlinx:kotlinx-coroutines-swing:${ctx.kmp?.coroutinesVersion || '1.9.0'}
+  - ch.qos.logback:logback-classic:1.5.16
 
 settings:
   compose: enabled
@@ -972,8 +976,6 @@ dependencies:
 
 settings:
   compose: enabled
-  ios:
-    teamId: ""
 `
             }, {
                 path: 'iosApp/module.xcodeproj/project.pbxproj',
@@ -1195,7 +1197,10 @@ class PlatformWasmJsTest {
 `
         }, {
             path: 'webApp/module.yaml',
-            content: `product: wasmJs/app
+            content: `product:
+  type: lib
+  platforms:
+    - wasm
 
 dependencies:
   - ../shared
