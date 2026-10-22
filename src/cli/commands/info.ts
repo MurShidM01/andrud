@@ -9,9 +9,9 @@ import { GRADLE_VERSIONS, TEMPLATE_CONFIGS } from '../../core/config.js';
 import pc from 'picocolors';
 import type { TemplateType, TemplateMetadata } from '../../core/types.js';
 
-interface InfoCommandOptions {
+export interface InfoCommandOptions {
   template?: string;
-  json: boolean;
+  json?: boolean;
 }
 
 /**
@@ -26,6 +26,7 @@ export async function createInfoCommand(
       const meta = getTemplateMetadata(template as TemplateType);
       if (!meta) {
         console.log(JSON.stringify({ error: `Template "${template}" not found` }, null, 2));
+        process.exitCode = 1;
         return;
       }
       printInfoJson(meta);
@@ -46,8 +47,8 @@ export async function createInfoCommand(
     console.log('');
 
     const templates = getAllTemplates();
-    const maxNameLength = Math.max(...templates.map(t => t.name.length));
-    const maxIdLength = Math.max(...templates.map(t => t.id.length));
+    const maxNameLength = Math.max(0, ...templates.map((t) => t.name.length));
+    const maxIdLength = Math.max(0, ...templates.map((t) => t.id.length));
 
     templates.forEach((t, index) => {
       const paddedName = t.name.padEnd(maxNameLength);
@@ -59,7 +60,7 @@ export async function createInfoCommand(
     });
 
     console.log('Usage: andrud info <template-name>');
-    console.log('Example: andrud info kotlin-compose');
+    console.log('Example: andrud info kotlin-multiplatform');
   }
 }
 
@@ -71,17 +72,20 @@ async function showTemplateInfo(templateId: TemplateType): Promise<void> {
   if (!meta) {
     console.log(pc.red(`Template "${templateId}" not found.`));
     console.log('Available templates:');
-    getAllTemplates().forEach(t => console.log(`  - ${t.id}`));
+    getAllTemplates().forEach((t) => console.log(`  - ${t.id}`));
+    process.exitCode = 1;
     return;
   }
 
   // Get template config for version info
-  const config = TEMPLATE_CONFIGS[templateId];
+  const config = TEMPLATE_CONFIGS[meta.id];
   if (!config) {
-    console.log(pc.red(`Template configuration not found for "${templateId}".`));
+    console.log(pc.red(`Template configuration not found for "${meta.id}".`));
+    process.exitCode = 1;
     return;
   }
-  const isCompose = templateId === 'kotlin-compose';
+  const isCompose = config.uiFramework === 'compose';
+  const isKmp = config.kmpEnabled === true;
 
   console.log('');
   console.log(gradientTeen(`═══ ${meta.name} ═══`));
@@ -94,7 +98,17 @@ async function showTemplateInfo(templateId: TemplateType): Promise<void> {
   printKeyValue([
     { key: 'Template ID', value: meta.id },
     { key: 'Language', value: config.language === 'kotlin' ? pc.green('Kotlin') : pc.yellow('Java') },
-    { key: 'UI Framework', value: isCompose ? pc.cyan('Jetpack Compose') : pc.gray('XML Layouts') },
+    {
+      key: 'UI Framework',
+      value: isKmp
+        ? pc.cyan('Compose Multiplatform')
+        : isCompose
+          ? pc.cyan('Jetpack Compose')
+          : pc.gray('XML Layouts')
+    },
+    ...(isKmp && config.platforms
+      ? [{ key: 'Target Platforms', value: config.platforms.join(', ') }]
+      : []),
     { key: 'Min SDK', value: `API ${config.minSdk}` },
     { key: 'Target SDK', value: `API ${config.targetSdk}` },
     { key: 'Compile SDK', value: `API ${config.compileSdk}` }
@@ -106,27 +120,38 @@ async function showTemplateInfo(templateId: TemplateType): Promise<void> {
     { key: 'Gradle', value: config.gradleVersion },
     { key: 'Android Gradle Plugin', value: config.agpVersion },
     { key: 'Kotlin', value: config.kotlinVersion || 'N/A' },
-    ...(isCompose ? [
-      { key: 'Compose BOM', value: GRADLE_VERSIONS.COMPOSE_BOM },
-      { key: 'Compose Compiler', value: GRADLE_VERSIONS.COMPOSE_COMPILER }
-    ] : []),
-    ...(templateId === 'native-cpp' ? [
-      { key: 'NDK', value: config.ndkVersion || GRADLE_VERSIONS.NDK }
-    ] : [])
+    ...(isKmp
+      ? [
+          {
+            key: 'Compose Multiplatform',
+            value: config.composeMultiplatformVersion || GRADLE_VERSIONS.COMPOSE_MULTIPLATFORM
+          },
+          { key: 'Kotlinx Coroutines', value: GRADLE_VERSIONS.KOTLINX_COROUTINES },
+          { key: 'Kotlinx Serialization', value: GRADLE_VERSIONS.KOTLINX_SERIALIZATION }
+        ]
+      : isCompose
+        ? [
+            { key: 'Compose BOM', value: GRADLE_VERSIONS.COMPOSE_BOM },
+            { key: 'Compose Compiler', value: GRADLE_VERSIONS.COMPOSE_COMPILER }
+          ]
+        : []),
+    ...(meta.id === 'native-cpp'
+      ? [{ key: 'NDK', value: config.ndkVersion || GRADLE_VERSIONS.NDK }]
+      : [])
   ]);
 
   // Features
   printSection('Features');
-  meta.features.forEach((feature, i) => {
+  meta.features.forEach((feature) => {
     console.log(`  ${pc.green('+')} ${feature}`);
   });
 
   // Keywords
   printSection('Keywords');
-  console.log(`  ${meta.keywords.map(k => pc.cyan(k)).join(', ')}`);
+  console.log(`  ${meta.keywords.map((k) => pc.cyan(k)).join(', ')}`);
 
   // Code preview
-  const preview = getTemplatePreview(templateId);
+  const preview = getTemplatePreview(meta.id);
   if (preview) {
     printSection('Code Preview');
     console.log(pc.gray('─'.repeat(60)));
@@ -146,24 +171,35 @@ function printInfoJson(meta: TemplateMetadata): void {
   const config = TEMPLATE_CONFIGS[meta.id];
   if (!config) return;
 
-  const isCompose = meta.id === 'kotlin-compose';
-
   const info = {
     id: meta.id,
     name: meta.name,
     description: meta.description,
     language: config.language,
-    uiFramework: config.uiFramework === 'compose' ? 'Jetpack Compose' : 'XML Layouts',
+    uiFramework: config.kmpEnabled
+      ? 'Compose Multiplatform'
+      : config.uiFramework === 'compose'
+        ? 'Jetpack Compose'
+        : 'XML Layouts',
+    ...(config.platforms ? { platforms: config.platforms } : {}),
     keywords: meta.keywords,
     features: meta.features,
     versions: {
       gradle: config.gradleVersion,
       agp: config.agpVersion,
       kotlin: config.kotlinVersion || null,
-      compose: config.composeEnabled ? {
-        bom: GRADLE_VERSIONS.COMPOSE_BOM,
-        compiler: GRADLE_VERSIONS.COMPOSE_COMPILER
-      } : null,
+      compose: config.composeEnabled
+        ? {
+            bom: GRADLE_VERSIONS.COMPOSE_BOM,
+            compiler: GRADLE_VERSIONS.COMPOSE_COMPILER,
+            ...(config.kmpEnabled
+              ? {
+                  multiplatform:
+                    config.composeMultiplatformVersion || GRADLE_VERSIONS.COMPOSE_MULTIPLATFORM
+                }
+              : {})
+          }
+        : null,
       ndk: config.ndkVersion || null
     },
     sdk: {

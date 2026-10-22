@@ -39,8 +39,9 @@ export async function isFile(path) {
 export async function readFile(path) {
     return fse.readFile(path, 'utf-8');
 }
-// Write file content
+// Write file content (ensures parent directory exists)
 export async function writeFile(path, content) {
+    await fse.ensureDir(dirname(path));
     if (typeof content === 'string') {
         await fse.writeFile(path, content, 'utf-8');
     }
@@ -54,6 +55,7 @@ export async function readJson(path) {
 }
 // Write JSON file
 export async function writeJson(path, data, spaces = 2) {
+    await fse.ensureDir(dirname(path));
     await fse.writeJson(path, data, { spaces });
 }
 // Copy file
@@ -165,7 +167,7 @@ export function getPackageRoot() {
     const currentFile = import.meta.url;
     if (currentFile.startsWith('file://')) {
         const currentDir = fileURLToPath(new URL('.', currentFile));
-        return resolve(currentDir, '..');
+        return resolve(currentDir, '../..');
     }
     return getCurrentWorkingDirectory();
 }
@@ -180,7 +182,7 @@ export async function listFiles(directory, extensions) {
                 await walk(fullPath);
             }
             else if (entry.isFile()) {
-                if (!extensions || extensions.some(ext => entry.name.endsWith(ext))) {
+                if (!extensions || extensions.some((ext) => entry.name.endsWith(ext))) {
                     files.push(fullPath);
                 }
             }
@@ -197,18 +199,38 @@ export async function readDirectory(directory) {
  * Write file with timeout protection
  */
 export async function writeFileWithTimeout(path, content, timeoutMs = 5000) {
-    return Promise.race([
-        writeFile(path, content),
-        new Promise((_, reject) => setTimeout(() => reject(new Error(`Write operation timeout after ${timeoutMs}ms`)), timeoutMs))
-    ]);
+    let timer;
+    try {
+        await Promise.race([
+            writeFile(path, content),
+            new Promise((_, reject) => {
+                timer = setTimeout(() => reject(new Error(`Write operation timeout after ${timeoutMs}ms`)), timeoutMs);
+            })
+        ]);
+    }
+    finally {
+        if (timer) {
+            clearTimeout(timer);
+        }
+    }
 }
 /**
  * Create directory with timeout protection
  */
 export async function createDirectoryWithTimeout(path, timeoutMs = 5000) {
-    return Promise.race([
-        createDirectory(path),
-        new Promise((_, reject) => setTimeout(() => reject(new Error(`Create directory operation timeout after ${timeoutMs}ms`)), timeoutMs))
-    ]);
+    let timer;
+    try {
+        await Promise.race([
+            createDirectory(path),
+            new Promise((_, reject) => {
+                timer = setTimeout(() => reject(new Error(`Create directory operation timeout after ${timeoutMs}ms`)), timeoutMs);
+            })
+        ]);
+    }
+    finally {
+        if (timer) {
+            clearTimeout(timer);
+        }
+    }
 }
 //# sourceMappingURL=filesystem.js.map

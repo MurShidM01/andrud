@@ -2,8 +2,8 @@
  * Output formatting utilities
  */
 import pc from 'picocolors';
-import { bold, dim, section, printSeparator } from './colors.js';
-import gradient from 'gradient-string';
+import { style, bold, dim, section, printSeparator, gradientTeen } from './colors.js';
+import { getPackageVersion } from '../utils/version.js';
 const logger = {
     log: (message, ...args) => {
         console.log(message, ...args);
@@ -33,26 +33,24 @@ const logger = {
 };
 export { logger };
 /**
- * Creates a gradient from cyan to green (singleton pattern to prevent memory leak)
- */
-const teenGradient = gradient('#00C9FF', '#92FE9D');
-/**
  * Prints the welcome banner
  */
 export function printWelcome() {
+    const version = getPackageVersion();
+    const versionTitle = `Android Project Generator v${version}`.padEnd(54);
     console.log('');
     console.log(pc.cyan(`
     ╔═══════════════════════════════════════════════════════════╗
     ║                                                           ║
-    ║     ██╗    ██╗ █████╗ ██████╗     ███████╗███╗   ██╗      ║
-    ║     ██║    ██║██╔══██╗██╔══██╗    ██╔════╝████╗  ██║      ║
-    ║     ██║ █╗ ██║███████║██████╔╝    █████╗  ██╔██╗ ██║      ║
-    ║     ██║███╗██║██╔══██║██╔══██╗    ██╔══╝  ██║╚██╗██║      ║
-    ║     ╚███╔███╔╝██║  ██║██║  ██║    ███████╗██║ ╚████║      ║
-    ║      ╚══╝╚══╝ ╚═╝  ╚═╝╚═╝  ╚═╝    ╚══════╝╚═╝  ╚═══╝      ║
+    ║      █████╗ ███╗   ██╗██████╗ ██████╗ ██╗   ██╗██████╗    ║
+    ║     ██╔══██╗████╗  ██║██╔══██╗██╔══██╗██║   ██║██╔══██╗   ║
+    ║     ███████║██╔██╗ ██║██║  ██║██████╔╝██║   ██║██║  ██║   ║
+    ║     ██╔══██║██║╚██╗██║██║  ██║██╔══██╗██║   ██║██║  ██║   ║
+    ║     ██║  ██║██║ ╚████║██████╔╝██║  ██║╚██████╔╝██████╔╝   ║
+    ║     ╚═╝  ╚═╝╚═╝  ╚═══╝╚═════╝ ╚═╝  ╚═╝ ╚═════╝ ╚═════╝    ║
     ║                                                           ║
-    ║     Android Project Generator v1.0.5                      ║
-    ║     Modern Android Development CLI                         ║
+    ║     ${versionTitle}║
+    ║     Modern Android Development CLI                        ║
     ║                                                           ║
     ╚═══════════════════════════════════════════════════════════╝
   `));
@@ -61,11 +59,10 @@ export function printWelcome() {
 /**
  * Prints the goodbye message
  */
-export function printGoodbye(success = true) {
-    // Uses module-level teenGradient constant
-    if (success) {
+export function printGoodbye(isSuccess = true) {
+    if (isSuccess) {
         console.log('');
-        console.log(teenGradient(`
+        console.log(gradientTeen(`
     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
       Thanks for using andrud! Happy coding! 🚀
@@ -114,8 +111,10 @@ export function printSection(text) {
  * Prints key-value pairs
  */
 export function printKeyValue(items) {
-    const maxKeyLength = Math.max(...items.map(item => item.key.length));
-    items.forEach(item => {
+    if (items.length === 0)
+        return;
+    const maxKeyLength = Math.max(0, ...items.map((item) => item.key.length));
+    items.forEach((item) => {
         const padding = ' '.repeat(maxKeyLength - item.key.length);
         console.log(`  ${pc.cyan(item.key)}${padding}   ${item.value}`);
     });
@@ -124,19 +123,19 @@ export function printKeyValue(items) {
  * Prints a separator line
  */
 export function printSeparatorLine(char = '─', length = 60) {
-    console.log(dim(char.repeat(length)));
+    console.log(dim(char.repeat(Math.max(0, length))));
 }
 /**
  * Prints a banner with text
  */
 export function printBanner(text, color = 'primary') {
     const padding = 4;
-    const line = ' '.repeat(padding);
+    const padSpaces = ' '.repeat(padding);
     const border = '━'.repeat(text.length + padding * 2);
     console.log('');
-    console.log(pc.cyan('  ' + border));
-    console.log(pc.cyan('  ║') + ' '.repeat(padding) + text + ' '.repeat(padding) + pc.cyan('║'));
-    console.log(pc.cyan('  ' + border));
+    console.log(style('  ' + border, color));
+    console.log(style('  ║', color) + padSpaces + text + padSpaces + style('║', color));
+    console.log(style('  ' + border, color));
     console.log('');
 }
 /**
@@ -145,14 +144,14 @@ export function printBanner(text, color = 'primary') {
 export function printAsciiBox(lines, options = {}) {
     const border = options.border ?? '─';
     const padding = options.padding ?? 2;
-    const maxLength = Math.max(...lines.map(l => l.length));
+    const maxLength = Math.max(0, ...lines.map((l) => l.length));
     const width = maxLength + padding * 2;
     console.log(pc.gray('  ┌' + border.repeat(width) + '┐'));
     if (lines.length === 0) {
         console.log(pc.gray('  │' + ' '.repeat(width) + '│'));
     }
     else {
-        lines.forEach(line => {
+        lines.forEach((line) => {
             const padded = line + ' '.repeat(maxLength - line.length);
             console.log(pc.gray('  │') + ' '.repeat(padding) + padded + ' '.repeat(padding) + pc.gray('│'));
         });
@@ -163,20 +162,22 @@ export function printAsciiBox(lines, options = {}) {
  * Prints a table with columns
  */
 export function printTable(columns, rows) {
-    const colWidths = columns.map(col => {
+    if (columns.length === 0)
+        return;
+    const colWidths = columns.map((col) => {
         const headerWidth = col.header.length;
-        const dataWidths = rows.map(row => col.accessor(row).length);
-        return col.width ?? Math.max(headerWidth, ...dataWidths);
+        const dataWidths = rows.map((row) => col.accessor(row).length);
+        return col.width ?? Math.max(headerWidth, 0, ...dataWidths);
     });
     // Print header
-    const headerRow = columns.map((_col, i) => {
+    const headerRow = columns.map((col, i) => {
         const width = colWidths[i] ?? 10;
-        return _col.header.substring(0, width).padEnd(width);
+        return col.header.substring(0, width).padEnd(width);
     });
     console.log(bold(headerRow.join('   ')));
-    console.log(pc.gray(colWidths.map(w => '─'.repeat(w)).join('   ')));
+    console.log(pc.gray(colWidths.map((w) => '─'.repeat(w)).join('   ')));
     // Print rows
-    rows.forEach(row => {
+    rows.forEach((row) => {
         const dataRow = columns.map((col, i) => {
             const width = colWidths[i] ?? 10;
             const value = col.accessor(row);

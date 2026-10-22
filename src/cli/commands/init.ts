@@ -17,9 +17,14 @@ import {
   printKeyValue,
   printGoodbye
 } from '../../ui/output.js';
-import { validatePackageStructure } from '../../utils/validation.js';
+import {
+  validatePackageStructure,
+  deriveValidAppName,
+  deriveDefaultPackageName
+} from '../../utils/validation.js';
 import { generateProject } from '../../core/generator.js';
 import { buildDefaultProjectContext, buildTemplateContext } from '../../core/context.js';
+import { parseKmpPlatforms } from '../../core/config.js';
 import { getCurrentWorkingDirectory } from '../../utils/filesystem.js';
 import { getTemplateMetadata, getAllTemplates } from '../../templates/index.js';
 import pc from 'picocolors';
@@ -30,6 +35,7 @@ interface InitCommandOptions {
   template?: string;
   package?: string;
   packageName?: string;
+  platforms?: string;
   yes?: boolean;
 }
 
@@ -51,7 +57,8 @@ export async function createInitCommand(
     printWelcome();
 
     const cwd = getCurrentWorkingDirectory();
-    const projectName = cwd.split(/[\\/]/).pop() ?? 'MyApp';
+    const rawFolderName = cwd.split(/[\\/]/).filter(Boolean).pop() ?? 'MyApp';
+    const projectName = deriveValidAppName(rawFolderName);
 
     printSection('Initialize Android Project');
     console.log(`Current directory: ${pc.cyan(cwd)}`);
@@ -66,13 +73,14 @@ export async function createInitCommand(
       const meta = getTemplateMetadata(options.template as TemplateType);
       if (!meta) {
         printError(`Unknown template: ${options.template}`);
+        process.exitCode = 1;
         return;
       }
-      selectedTemplate = options.template;
+      selectedTemplate = meta.id;
     } else if (shouldUseDefaults(options)) {
       selectedTemplate = 'kotlin-compose';
     } else {
-      const templateOptions = templates.map(t => ({
+      const templateOptions = templates.map((t) => ({
         label: t.name,
         value: t.id,
         hint: t.keywords.slice(0, 2).join(', ')
@@ -92,12 +100,12 @@ export async function createInitCommand(
     }
 
     // Step 2: Get package name
-    const defaultPackage = `com.example.${projectName.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+    const defaultPackage = deriveDefaultPackageName(projectName);
     const packageInput = packageOption(options);
     let packageName: string;
 
     if (packageInput) {
-      packageName = packageInput;
+      packageName = packageInput.trim().toLowerCase();
     } else if (shouldUseDefaults(options)) {
       packageName = defaultPackage;
     } else {
@@ -119,12 +127,13 @@ export async function createInitCommand(
         return;
       }
 
-      packageName = packageResult as string;
+      packageName = (packageResult as string).trim().toLowerCase();
     }
 
     const validation = validatePackageStructure(packageName);
     if (!validation.valid) {
       printError('Invalid package name', validation.errors.join(', '));
+      process.exitCode = 1;
       return;
     }
 
@@ -146,6 +155,11 @@ export async function createInitCommand(
       }
     }
 
+    const kmpPlatforms =
+      selectedTemplate === 'kotlin-multiplatform' && options.platforms
+        ? parseKmpPlatforms(options.platforms)
+        : undefined;
+
     // Build context
     const baseContext = buildDefaultProjectContext(
       projectName,
@@ -157,21 +171,13 @@ export async function createInitCommand(
         readme: true,
         androidX: true,
         kotlinDsl: true
-      }
+      },
+      undefined,
+      undefined,
+      kmpPlatforms
     );
 
-    const context = buildTemplateContext({
-      appName: baseContext.appName,
-      packageName: baseContext.packageName,
-      projectDirectory: baseContext.projectDirectory,
-      template: baseContext.template,
-      uiFramework: baseContext.uiFramework,
-      language: baseContext.language,
-      android: baseContext.android,
-      gradle: baseContext.gradle,
-      features: baseContext as unknown as Record<string, boolean>,
-      nativeCpp: baseContext.nativeCpp
-    });
+    const context = buildTemplateContext(baseContext);
 
     // Generate project
     printSection('Generating Project');
@@ -186,6 +192,7 @@ export async function createInitCommand(
     if (result.success) {
       printSuccess('Project initialized successfully!');
       printKeyValue([
+        { key: 'Project', value: projectName },
         { key: 'Package', value: packageName },
         { key: 'Template', value: selectedTemplate },
         { key: 'Location', value: cwd },
@@ -196,15 +203,18 @@ export async function createInitCommand(
     } else {
       printError('Project initialization failed');
       if (result.errors.length > 0) {
-        result.errors.forEach(err => {
+        result.errors.forEach((err) => {
           console.log(`  ${pc.red('•')} ${err.file ? `${err.file}: ` : ''}${err.message}`);
         });
       }
       printGoodbye(false);
+      process.exitCode = 1;
     }
   } catch (error) {
     printError('An unexpected error occurred', (error as Error).message);
     printGoodbye(false);
-    process.exit(1);
+    process.exitCode = 1;
   }
 }
+
+export type { InitCommandOptions };

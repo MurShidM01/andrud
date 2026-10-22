@@ -40,10 +40,23 @@ test('Context - Build Default Context', async (t) => {
     assert.strictEqual(context.readme, true);
     assert.strictEqual(context.androidX, true);
   });
+
+  await t.test('should configure native-cpp template with NDK settings', () => {
+    const context = buildDefaultProjectContext(
+      'NativeGame',
+      'com.example.nativegame',
+      './native-game',
+      'native-cpp'
+    );
+
+    assert.ok(context.nativeCpp);
+    assert.strictEqual(context.nativeCpp?.cppStandard, 'c++17');
+    assert.ok(Array.isArray(context.nativeCpp?.abiFilters));
+  });
 });
 
 test('Context - Build Template Context', async (t) => {
-  await t.test('should build full template context', () => {
+  await t.test('should build full template context directly from baseContext', () => {
     const baseContext = buildDefaultProjectContext(
       'MyApp',
       'com.example.myapp',
@@ -51,17 +64,7 @@ test('Context - Build Template Context', async (t) => {
       'kotlin-compose' as TemplateType
     );
 
-    const context = buildTemplateContext({
-      appName: baseContext.appName,
-      packageName: baseContext.packageName,
-      projectDirectory: baseContext.projectDirectory,
-      template: baseContext.template,
-      uiFramework: baseContext.uiFramework,
-      language: baseContext.language,
-      android: baseContext.android,
-      gradle: baseContext.gradle,
-      features: baseContext as unknown as Record<string, boolean>
-    });
+    const context = buildTemplateContext(baseContext);
 
     assert.ok(context.appNameCamel);
     assert.ok(context.appNamePascal);
@@ -74,26 +77,17 @@ test('Context - Build Template Context', async (t) => {
 
   await t.test('should generate correct app name transformations', () => {
     const baseContext = buildDefaultProjectContext(
-      'MyAwesomeApp',
+      'My_Awesome_App',
       'com.example.myapp',
       './my-project',
       'kotlin-compose' as TemplateType
     );
 
-    const context = buildTemplateContext({
-      appName: baseContext.appName,
-      packageName: baseContext.packageName,
-      projectDirectory: baseContext.projectDirectory,
-      template: baseContext.template,
-      uiFramework: baseContext.uiFramework,
-      language: baseContext.language,
-      android: baseContext.android,
-      gradle: baseContext.gradle,
-      features: baseContext as unknown as Record<string, boolean>
-    });
+    const context = buildTemplateContext(baseContext);
 
-    assert.ok(context.appNamePascal.includes('Awesome'));
-    assert.ok(context.packagePath.includes('/'));
+    assert.strictEqual(context.appNamePascal, 'MyAwesomeApp');
+    assert.strictEqual(context.appNameCamel, 'myAwesomeApp');
+    assert.strictEqual(context.packagePath, 'com/example/myapp');
   });
 });
 
@@ -129,5 +123,21 @@ test('Context - Validate Context', async (t) => {
     });
 
     assert.strictEqual(result.valid, false);
+  });
+
+  await t.test('should reject context where minSdk > targetSdk', () => {
+    const baseContext = buildDefaultProjectContext(
+      'MyApp',
+      'com.example.myapp',
+      './my-project',
+      'kotlin-compose',
+      {},
+      36,
+      31
+    );
+
+    const result = validateContext(baseContext);
+    assert.strictEqual(result.valid, false);
+    assert.ok(result.errors.some((e) => e.includes('minSdk')));
   });
 });

@@ -7,10 +7,10 @@ import { printSection } from '../../ui/output.js';
 import { getAllTemplates, getTemplatePreview, searchTemplates } from '../../templates/index.js';
 import { TEMPLATE_CONFIGS } from '../../core/config.js';
 import pc from 'picocolors';
-import type { TemplateType, TemplateMetadata } from '../../core/types.js';
+import type { TemplateMetadata } from '../../core/types.js';
 
-interface ListCommandOptions {
-  json: boolean;
+export interface ListCommandOptions {
+  json?: boolean;
   search?: string;
 }
 
@@ -21,13 +21,15 @@ export async function createListCommand(
   options: ListCommandOptions = { json: false }
 ): Promise<void> {
   // Validate search input
-  if (options.search && typeof options.search !== 'string') {
+  if (options.search !== undefined && typeof options.search !== 'string') {
     console.log(pc.red('Error: Search query must be a string'));
+    process.exitCode = 1;
     return;
   }
 
   if (options.search && options.search.length > 100) {
     console.log(pc.red('Error: Search query is too long (maximum 100 characters)'));
+    process.exitCode = 1;
     return;
   }
 
@@ -37,12 +39,13 @@ export async function createListCommand(
     : getAllTemplates();
 
   if (options.json) {
-    const templateList = templates.map(t => ({
+    const templateList = templates.map((t) => ({
       id: t.id,
       name: t.name,
       description: t.description,
       language: TEMPLATE_CONFIGS[t.id]?.language === 'kotlin' ? 'Kotlin' : 'Java',
-      uiFramework: TEMPLATE_CONFIGS[t.id]?.uiFramework === 'compose' ? 'Compose' : 'XML'
+      uiFramework: TEMPLATE_CONFIGS[t.id]?.uiFramework === 'compose' ? 'Compose' : 'XML',
+      ...(t.platforms ? { platforms: t.platforms } : {})
     }));
     console.log(JSON.stringify(templateList, null, 2));
     return;
@@ -67,13 +70,16 @@ export async function createListCommand(
   printSection('Summary');
   console.log(`  Total templates: ${bold(templates.length.toString())}`);
   console.log(`  Kotlin templates: ${bold(
-    templates.filter(t => TEMPLATE_CONFIGS[t.id]?.language === 'kotlin').length.toString()
+    templates.filter((t) => TEMPLATE_CONFIGS[t.id]?.language === 'kotlin').length.toString()
   )}`);
   console.log(`  Java templates: ${bold(
-    templates.filter(t => TEMPLATE_CONFIGS[t.id]?.language === 'java').length.toString()
+    templates.filter((t) => TEMPLATE_CONFIGS[t.id]?.language === 'java').length.toString()
   )}`);
   console.log(`  Compose templates: ${bold(
-    templates.filter(t => TEMPLATE_CONFIGS[t.id]?.uiFramework === 'compose').length.toString()
+    templates.filter((t) => TEMPLATE_CONFIGS[t.id]?.uiFramework === 'compose').length.toString()
+  )}`);
+  console.log(`  Multiplatform templates: ${bold(
+    templates.filter((t) => TEMPLATE_CONFIGS[t.id]?.kmpEnabled).length.toString()
   )}`);
   console.log('');
 
@@ -103,6 +109,9 @@ function printTemplateCard(template: TemplateMetadata, number: number): void {
   if (template.id === 'native-cpp') {
     tags.push(pc.magenta('NDK'));
   }
+  if (template.id === 'kotlin-multiplatform') {
+    tags.push(pc.magenta('KMP (Android • iOS • Desktop • Web)'));
+  }
   console.log(`    ${tags.join('  ')}`);
 
   // Key features
@@ -124,9 +133,8 @@ function printTemplateCard(template: TemplateMetadata, number: number): void {
     console.log('    ' + pc.gray('┌─ Code preview'));
     lines.forEach((line, i) => {
       const isLast = i === lines.length - 1;
-      const prefix = isLast ? '    ' : '    ';
       const linePrefix = isLast ? '└─' : '│ ';
-      console.log(prefix + pc.gray(linePrefix) + pc.dim(line.substring(0, 50) + (line.length > 50 ? '...' : '')));
+      console.log('    ' + pc.gray(linePrefix) + pc.dim(line.substring(0, 50) + (line.length > 50 ? '...' : '')));
     });
   }
 
@@ -139,8 +147,10 @@ function printTemplateCard(template: TemplateMetadata, number: number): void {
  * Print templates as a compact list
  */
 export function printTemplateList(templates: TemplateMetadata[]): void {
-  const maxIdLength = Math.max(...templates.map(t => t.id.length));
-  const maxNameLength = Math.max(...templates.map(t => t.name.length));
+  if (templates.length === 0) return;
+
+  const maxIdLength = Math.max(0, ...templates.map((t) => t.id.length));
+  const maxNameLength = Math.max(0, ...templates.map((t) => t.name.length));
 
   templates.forEach((t, i) => {
     const config = TEMPLATE_CONFIGS[t.id];

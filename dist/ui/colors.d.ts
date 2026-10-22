@@ -1,7 +1,8 @@
 /**
  * Color and text formatting utilities using picocolors and gradient-string
  */
-export declare function style(text: string, type: 'primary' | 'success' | 'warning' | 'error' | 'info' | 'muted'): string;
+import type { StyleType } from './types.js';
+export declare function style(text: string, type: StyleType): string;
 export declare const bold: (text: string) => string;
 export declare const dim: (text: string) => string;
 export declare const underline: (text: string) => string;

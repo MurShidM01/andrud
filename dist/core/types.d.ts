@@ -1,9 +1,18 @@
 /**
- * Core type definitions for the Android project generator
+ * Core type definitions for the Android & Kotlin Multiplatform project generator
  */
 export type LanguageType = 'kotlin' | 'java';
 export type UiFrameworkType = 'xml' | 'compose';
-export type TemplateType = 'kotlin-xml' | 'kotlin-compose' | 'java-xml' | 'native-cpp';
+export type TemplateType = 'kotlin-xml' | 'kotlin-compose' | 'java-xml' | 'native-cpp' | 'kotlin-multiplatform';
+export type KmpPlatform = 'android' | 'ios' | 'desktop' | 'wasmJs';
+export interface KmpConfig {
+    platforms: KmpPlatform[];
+    composeMultiplatformVersion: string;
+    coroutinesVersion: string;
+    serializationVersion: string;
+    sharedModuleName: string;
+    includeIosApp: boolean;
+}
 export interface AndroidSdkConfig {
     minSdk: number;
     targetSdk: number;
@@ -16,6 +25,7 @@ export interface GradleConfig {
     kotlinVersion?: string;
     composeCompilerVersion?: string;
     composeBomVersion?: string;
+    composeMultiplatformVersion?: string;
 }
 export interface ProjectFeatures {
     git: boolean;
@@ -27,6 +37,7 @@ export interface ProjectFeatures {
     viewBinding?: boolean;
     dataBinding?: boolean;
     jetpackCompose?: boolean;
+    kotlinMultiplatform?: boolean;
 }
 export interface NativeCppConfig {
     cppStandard: 'c++17' | 'c++20';
@@ -52,6 +63,7 @@ export interface TemplateContext extends ProjectFeatures {
     year: string;
     generatorVersion: string;
     nativeCpp?: NativeCppConfig;
+    kmp?: KmpConfig;
 }
 export interface GenerationOptions {
     overwrite: boolean;
@@ -95,6 +107,7 @@ export interface TemplateMetadata {
     features: string[];
     language: LanguageType;
     uiFramework: UiFrameworkType;
+    platforms?: KmpPlatform[];
     codePreview?: string;
 }
 export interface NewCommandOptions {
@@ -104,6 +117,7 @@ export interface NewCommandOptions {
     directory?: string;
     minSdk?: number;
     targetSdk?: number;
+    platforms?: string;
     force?: boolean;
     skipInstall?: boolean;
     git?: boolean;
@@ -113,6 +127,7 @@ export interface NewCommandOptions {
 export interface InitCommandOptions {
     force: boolean;
     template?: string;
+    platforms?: string;
 }
 export interface InfoCommandOptions {
     template?: string;

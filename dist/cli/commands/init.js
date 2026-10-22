@@ -3,9 +3,10 @@
  */
 import { select, text, confirm, isCancel, cancel } from '@clack/prompts';
 import { printWelcome, printSuccess, printError, printSection, printKeyValue, printGoodbye } from '../../ui/output.js';
-import { validatePackageStructure } from '../../utils/validation.js';
+import { validatePackageStructure, deriveValidAppName, deriveDefaultPackageName } from '../../utils/validation.js';
 import { generateProject } from '../../core/generator.js';
 import { buildDefaultProjectContext, buildTemplateContext } from '../../core/context.js';
+import { parseKmpPlatforms } from '../../core/config.js';
 import { getCurrentWorkingDirectory } from '../../utils/filesystem.js';
 import { getTemplateMetadata, getAllTemplates } from '../../templates/index.js';
 import pc from 'picocolors';
@@ -22,7 +23,8 @@ export async function createInitCommand(options = {}) {
     try {
         printWelcome();
         const cwd = getCurrentWorkingDirectory();
-        const projectName = cwd.split(/[\\/]/).pop() ?? 'MyApp';
+        const rawFolderName = cwd.split(/[\\/]/).filter(Boolean).pop() ?? 'MyApp';
+        const projectName = deriveValidAppName(rawFolderName);
         printSection('Initialize Android Project');
         console.log(`Current directory: ${pc.cyan(cwd)}`);
         console.log('');
@@ -34,15 +36,16 @@ export async function createInitCommand(options = {}) {
             const meta = getTemplateMetadata(options.template);
             if (!meta) {
                 printError(`Unknown template: ${options.template}`);
+                process.exitCode = 1;
                 return;
             }
-            selectedTemplate = options.template;
+            selectedTemplate = meta.id;
         }
         else if (shouldUseDefaults(options)) {
             selectedTemplate = 'kotlin-compose';
         }
         else {
-            const templateOptions = templates.map(t => ({
+            const templateOptions = templates.map((t) => ({
                 label: t.name,
                 value: t.id,
                 hint: t.keywords.slice(0, 2).join(', ')
@@ -58,11 +61,11 @@ export async function createInitCommand(options = {}) {
             selectedTemplate = templateResult;
         }
         // Step 2: Get package name
-        const defaultPackage = `com.example.${projectName.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+        const defaultPackage = deriveDefaultPackageName(projectName);
         const packageInput = packageOption(options);
         let packageName;
         if (packageInput) {
-            packageName = packageInput;
+            packageName = packageInput.trim().toLowerCase();
         }
         else if (shouldUseDefaults(options)) {
             packageName = defaultPackage;
@@ -84,11 +87,12 @@ export async function createInitCommand(options = {}) {
                 cancel();
                 return;
             }
-            packageName = packageResult;
+            packageName = packageResult.trim().toLowerCase();
         }
         const validation = validatePackageStructure(packageName);
         if (!validation.valid) {
             printError('Invalid package name', validation.errors.join(', '));
+            process.exitCode = 1;
             return;
         }
         // Confirm initialization
@@ -106,25 +110,17 @@ export async function createInitCommand(options = {}) {
                 return;
             }
         }
+        const kmpPlatforms = selectedTemplate === 'kotlin-multiplatform' && options.platforms
+            ? parseKmpPlatforms(options.platforms)
+            : undefined;
         // Build context
         const baseContext = buildDefaultProjectContext(projectName, packageName, cwd, selectedTemplate, {
             git: true,
             readme: true,
             androidX: true,
             kotlinDsl: true
-        });
-        const context = buildTemplateContext({
-            appName: baseContext.appName,
-            packageName: baseContext.packageName,
-            projectDirectory: baseContext.projectDirectory,
-            template: baseContext.template,
-            uiFramework: baseContext.uiFramework,
-            language: baseContext.language,
-            android: baseContext.android,
-            gradle: baseContext.gradle,
-            features: baseContext,
-            nativeCpp: baseContext.nativeCpp
-        });
+        }, undefined, undefined, kmpPlatforms);
+        const context = buildTemplateContext(baseContext);
         // Generate project
         printSection('Generating Project');
         const result = await generateProject(context, {
@@ -136,6 +132,7 @@ export async function createInitCommand(options = {}) {
         if (result.success) {
             printSuccess('Project initialized successfully!');
             printKeyValue([
+                { key: 'Project', value: projectName },
                 { key: 'Package', value: packageName },
                 { key: 'Template', value: selectedTemplate },
                 { key: 'Location', value: cwd },
@@ -146,17 +143,18 @@ export async function createInitCommand(options = {}) {
         else {
             printError('Project initialization failed');
             if (result.errors.length > 0) {
-                result.errors.forEach(err => {
+                result.errors.forEach((err) => {
                     console.log(`  ${pc.red('•')} ${err.file ? `${err.file}: ` : ''}${err.message}`);
                 });
             }
             printGoodbye(false);
+            process.exitCode = 1;
         }
     }
     catch (error) {
         printError('An unexpected error occurred', error.message);
         printGoodbye(false);
-        process.exit(1);
+        process.exitCode = 1;
     }
 }
 //# sourceMappingURL=init.js.map

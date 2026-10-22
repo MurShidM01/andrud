@@ -1,4 +1,4 @@
-﻿# andrud
+# andrud
 
 <p align="center">
   <a href="https://www.npmjs.com/package/andrud"><img src="https://img.shields.io/npm/v/andrud?style=for-the-badge&color=%2300C9FF&labelColor=%23222" alt="npm version"></a>
@@ -37,7 +37,7 @@
 | Production Ready | Industry-standard Gradle configuration with latest versions |
 | TypeScript | Fully typed codebase for reliability |
 | Customizable | Configure SDK versions, features, and more |
-| Modern Android | Android 15 (SDK 35/36) with Jetpack libraries |
+| Modern Android | Android 7.0 (minSdk 24) to Android 17 (targetSdk 37) with Jetpack libraries |
 | Beautiful UI | Colorful terminal output with gradients |
 
 
@@ -66,6 +66,7 @@ _Last verification: 2026-06-02._
 | kotlin-compose | Kotlin | Jetpack Compose | Modern declarative UI |
 | java-xml | Java | XML Views | Java projects & legacy codebases |
 | native-cpp | Kotlin + C++ | XML Views | High-performance & game development |
+| kotlin-multiplatform | Kotlin (KMP) | Compose Multiplatform | Cross-platform Android, iOS, Desktop (JVM) & Web (Wasm) |
 
 ---
 
@@ -100,6 +101,7 @@ andrud new MyApp
 |---------|-------------|
 | andrud create | Interactive project creation |
 | andrud new name | Create project with name |
+| andrud kmp name | Create a cross-platform Kotlin Multiplatform project |
 | andrud init | Initialize a project in the current directory |
 | andrud list | Show all available templates |
 | andrud info template | View template details |
@@ -136,6 +138,10 @@ andrud new MyJavaApp -t java-xml -p com.mydomain.app
 
 # Native C++ with NDK
 andrud new MyNativeApp -t native-cpp -p com.mydomain.app
+
+# Kotlin Multiplatform (Cross-Platform: Android, iOS, Desktop, Web/Wasm)
+andrud kmp MyKmpApp -p com.mydomain.kmpapp --platforms android,ios,desktop,wasmJs
+andrud new MyKmpApp -t kotlin-multiplatform -p com.mydomain.kmpapp
 ```
 
 ### List Templates

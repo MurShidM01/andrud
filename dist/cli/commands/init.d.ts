@@ -6,11 +6,12 @@ interface InitCommandOptions {
     template?: string;
     package?: string;
     packageName?: string;
+    platforms?: string;
     yes?: boolean;
 }
 /**
  * Initialize Android project in current directory
  */
 export declare function createInitCommand(options?: InitCommandOptions): Promise<void>;
-export {};
+export type { InitCommandOptions };
 //# sourceMappingURL=init.d.ts.map

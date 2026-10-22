@@ -13,15 +13,17 @@ export interface LoggerOptions {
 }
 export declare class Logger {
     private level;
-    private verbose;
+    private verboseEnabled;
     constructor(options?: LoggerOptions);
     debug(message: string, data?: unknown): void;
+    verbose(message: string, data?: unknown): void;
     info(message: string, data?: unknown): void;
     warn(message: string, data?: unknown): void;
     error(message: string, error?: Error | string): void;
     success(message: string): void;
     setLevel(level: LogLevel): void;
     setVerbose(verbose: boolean): void;
+    isVerbose(): boolean;
 }
 export declare const defaultLogger: Logger;
 //# sourceMappingURL=logger.d.ts.map

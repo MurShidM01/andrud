@@ -42,8 +42,9 @@ export async function readFile(path: string): Promise<string> {
   return fse.readFile(path, 'utf-8');
 }
 
-// Write file content
+// Write file content (ensures parent directory exists)
 export async function writeFile(path: string, content: string | Uint8Array): Promise<void> {
+  await fse.ensureDir(dirname(path));
   if (typeof content === 'string') {
     await fse.writeFile(path, content, 'utf-8');
   } else {
@@ -58,6 +59,7 @@ export async function readJson<T = unknown>(path: string): Promise<T> {
 
 // Write JSON file
 export async function writeJson(path: string, data: unknown, spaces: number = 2): Promise<void> {
+  await fse.ensureDir(dirname(path));
   await fse.writeJson(path, data, { spaces });
 }
 
@@ -189,7 +191,7 @@ export function getPackageRoot(): string {
   const currentFile = import.meta.url;
   if (currentFile.startsWith('file://')) {
     const currentDir = fileURLToPath(new URL('.', currentFile));
-    return resolve(currentDir, '..');
+    return resolve(currentDir, '../..');
   }
   return getCurrentWorkingDirectory();
 }
@@ -205,7 +207,7 @@ export async function listFiles(directory: string, extensions?: string[]): Promi
       if (entry.isDirectory()) {
         await walk(fullPath);
       } else if (entry.isFile()) {
-        if (!extensions || extensions.some(ext => entry.name.endsWith(ext))) {
+        if (!extensions || extensions.some((ext) => entry.name.endsWith(ext))) {
           files.push(fullPath);
         }
       }
@@ -229,15 +231,22 @@ export async function writeFileWithTimeout(
   content: string | Uint8Array,
   timeoutMs: number = 5000
 ): Promise<void> {
-  return Promise.race([
-    writeFile(path, content),
-    new Promise<void>((_, reject) =>
-      setTimeout(
-        () => reject(new Error(`Write operation timeout after ${timeoutMs}ms`)),
-        timeoutMs
-      )
-    )
-  ]);
+  let timer: NodeJS.Timeout | undefined;
+  try {
+    await Promise.race([
+      writeFile(path, content),
+      new Promise<void>((_, reject) => {
+        timer = setTimeout(
+          () => reject(new Error(`Write operation timeout after ${timeoutMs}ms`)),
+          timeoutMs
+        );
+      })
+    ]);
+  } finally {
+    if (timer) {
+      clearTimeout(timer);
+    }
+  }
 }
 
 /**
@@ -247,13 +256,20 @@ export async function createDirectoryWithTimeout(
   path: string,
   timeoutMs: number = 5000
 ): Promise<void> {
-  return Promise.race([
-    createDirectory(path),
-    new Promise<void>((_, reject) =>
-      setTimeout(
-        () => reject(new Error(`Create directory operation timeout after ${timeoutMs}ms`)),
-        timeoutMs
-      )
-    )
-  ]);
+  let timer: NodeJS.Timeout | undefined;
+  try {
+    await Promise.race([
+      createDirectory(path),
+      new Promise<void>((_, reject) => {
+        timer = setTimeout(
+          () => reject(new Error(`Create directory operation timeout after ${timeoutMs}ms`)),
+          timeoutMs
+        );
+      })
+    ]);
+  } finally {
+    if (timer) {
+      clearTimeout(timer);
+    }
+  }
 }

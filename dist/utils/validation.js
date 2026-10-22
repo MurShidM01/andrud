@@ -1,6 +1,32 @@
 /**
- * Validation utilities for app names, package names, and paths
+ * Validation utilities for app names, package names, SDK versions, and paths
  */
+/**
+ * Reserved Java and Kotlin keywords that cannot be used as package segments
+ */
+const JAVA_KOTLIN_RESERVED_KEYWORDS = new Set([
+    'abstract', 'assert', 'boolean', 'break', 'byte', 'case', 'catch', 'char',
+    'class', 'const', 'continue', 'default', 'do', 'double', 'else', 'enum',
+    'extends', 'false', 'final', 'finally', 'float', 'for', 'goto', 'if',
+    'implements', 'import', 'instanceof', 'int', 'interface', 'long', 'native',
+    'new', 'null', 'package', 'private', 'protected', 'public', 'return',
+    'short', 'static', 'strictfp', 'super', 'switch', 'synchronized', 'this',
+    'throw', 'throws', 'transient', 'true', 'try', 'void', 'volatile', 'while',
+    'as', 'fun', 'in', 'is', 'object', 'typealias', 'typeof', 'val', 'var', 'when'
+]);
+/**
+ * Reserved package prefixes disallowed by Android/Java conventions
+ */
+const RESERVED_PACKAGE_PREFIXES = [
+    'java',
+    'javax',
+    'android',
+    'androidx',
+    'kotlin',
+    'kotlinx',
+    'com.android',
+    'com.google.android'
+];
 // Validate app name
 export function validateAppName(name) {
     const errors = [];
@@ -73,7 +99,7 @@ export function validatePackageNameInput(name) {
         errors.push('Package name must have at least 2 segments (e.g., com.app)');
         return { valid: false, errors, warnings, suggestions };
     }
-    // Maximum segment length
+    // Maximum segment length and keyword checks
     for (const segment of segments) {
         if (segment.length < 1) {
             errors.push('Package segments cannot be empty');
@@ -83,12 +109,15 @@ export function validatePackageNameInput(name) {
             errors.push(`Package segment "${segment}" exceeds 50 character limit`);
             return { valid: false, errors, warnings, suggestions };
         }
+        if (JAVA_KOTLIN_RESERVED_KEYWORDS.has(segment)) {
+            errors.push(`Package segment "${segment}" is a reserved Java/Kotlin keyword`);
+            return { valid: false, errors, warnings, suggestions };
+        }
     }
     // Check for reserved prefixes
-    const reservedPrefixes = ['java', 'android', 'kotlin', 'javax', 'androidx', 'com.android'];
-    if (reservedPrefixes.some(p => trimmed.startsWith(p + '.'))) {
-        const prefix = reservedPrefixes.find(p => trimmed.startsWith(p + '.'));
-        errors.push(`Package name cannot start with reserved prefix: ${prefix}`);
+    const matchedPrefix = RESERVED_PACKAGE_PREFIXES.find((prefix) => trimmed === prefix || trimmed.startsWith(prefix + '.'));
+    if (matchedPrefix) {
+        errors.push(`Package name cannot start with reserved prefix: ${matchedPrefix}`);
         return { valid: false, errors, warnings, suggestions };
     }
     // Warnings
@@ -182,20 +211,34 @@ export function validateVersion(version) {
     }
     return { valid: true, errors, warnings };
 }
+/**
+ * Helper to strictly parse an integer SDK value
+ */
+function parseSdkNumber(sdk) {
+    if (typeof sdk === 'number') {
+        return Number.isInteger(sdk) ? sdk : null;
+    }
+    const trimmed = String(sdk).trim();
+    if (!/^-?\d+$/.test(trimmed)) {
+        return null;
+    }
+    const parsed = Number.parseInt(trimmed, 10);
+    return Number.isInteger(parsed) ? parsed : null;
+}
 // Validate Android min SDK
 export function validateAndroidMinSdk(sdk) {
     const errors = [];
     const warnings = [];
-    const sdkNum = typeof sdk === 'string' ? parseInt(sdk, 10) : sdk;
-    if (isNaN(sdkNum)) {
-        errors.push('Min SDK must be a number');
+    const sdkNum = parseSdkNumber(sdk);
+    if (sdkNum === null) {
+        errors.push('Min SDK must be a valid integer');
         return { valid: false, errors, warnings };
     }
-    if (sdkNum < 16) {
-        errors.push('Min SDK must be at least 16 (Android 4.1)');
+    if (sdkNum < 21) {
+        errors.push('Min SDK must be at least 21 (Android 5.0)');
         return { valid: false, errors, warnings };
     }
-    if (sdkNum > 35) {
+    if (sdkNum > 37) {
         warnings.push('Min SDK is very high. This excludes older devices.');
     }
     return { valid: true, errors, warnings };
@@ -204,36 +247,95 @@ export function validateAndroidMinSdk(sdk) {
 export function validateAndroidTargetSdk(sdk) {
     const errors = [];
     const warnings = [];
-    const sdkNum = typeof sdk === 'string' ? parseInt(sdk, 10) : sdk;
-    if (isNaN(sdkNum)) {
-        errors.push('Target SDK must be a number');
+    const sdkNum = parseSdkNumber(sdk);
+    if (sdkNum === null) {
+        errors.push('Target SDK must be a valid integer');
         return { valid: false, errors, warnings };
     }
     if (sdkNum < 21) {
         errors.push('Target SDK must be at least 21');
         return { valid: false, errors, warnings };
     }
-    if (sdkNum > 35) {
-        warnings.push('Target SDK exceeds latest stable (35). This might require unstable dependencies.');
+    if (sdkNum > 37) {
+        warnings.push('Target SDK exceeds latest stable (37). This might require preview SDK dependencies.');
     }
     return { valid: true, errors, warnings };
 }
 // Sanitize file name
 export function sanitizeFileName(name) {
     return name
-        .replace(/[<>:"/\\|?*]/g, '_')
+        .replace(/[<>:"/\\|?*\0]/g, '_')
         .replace(/\s+/g, '_')
         .replace(/_{2,}/g, '_')
         .trim();
 }
 // Sanitize package name
 export function sanitizePackageName(name) {
-    return name
+    const cleaned = name
+        .trim()
         .toLowerCase()
-        .replace(/[^a-z0-9.]/g, '_')
-        .replace(/_{2,}/g, '.')
-        .replace(/^\.|\.$/g, '')
-        .trim();
+        .replace(/[^a-z0-9._]/g, '_')
+        .replace(/\.{2,}/g, '.')
+        .replace(/_{2,}/g, '_')
+        .replace(/^\.|\.$/g, '');
+    const segments = cleaned
+        .split('.')
+        .map((segment) => {
+        let s = segment.replace(/^[^a-z]+/, '');
+        if (!s)
+            s = 'app';
+        if (JAVA_KOTLIN_RESERVED_KEYWORDS.has(s)) {
+            s = `${s}app`;
+        }
+        return s;
+    })
+        .filter(Boolean);
+    if (segments.length === 0) {
+        return 'com.example.myapp';
+    }
+    if (segments.length === 1) {
+        return `com.example.${segments[0]}`;
+    }
+    return segments.join('.');
+}
+/**
+ * Derive a valid Android app name from an arbitrary string (e.g. directory basename)
+ */
+export function deriveValidAppName(rawName) {
+    const pascal = pascalCase(rawName);
+    if (!pascal) {
+        return 'MyApp';
+    }
+    if (/^[0-9]/.test(pascal)) {
+        return `App${pascal}`;
+    }
+    return pascal.slice(0, 50);
+}
+/**
+ * Derive a valid default package name from an app name
+ */
+export function deriveDefaultPackageName(appName) {
+    let segment = appName.toLowerCase().replace(/[^a-z0-9]/g, '');
+    segment = segment.replace(/^[0-9]+/, '');
+    if (!segment) {
+        segment = 'myapp';
+    }
+    if (JAVA_KOTLIN_RESERVED_KEYWORDS.has(segment)) {
+        segment = `${segment}app`;
+    }
+    return `com.example.${segment}`;
+}
+/**
+ * Split a string into alphanumeric words across camelCase, PascalCase, spaces, underscores, and hyphens
+ */
+function splitWords(str) {
+    if (!str)
+        return [];
+    return str
+        .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+        .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+        .split(/[^a-zA-Z0-9]+/)
+        .filter(Boolean);
 }
 // String transformation utilities
 export function capitalizeFirstLetter(str) {
@@ -242,31 +344,32 @@ export function capitalizeFirstLetter(str) {
     return str.charAt(0).toUpperCase() + str.slice(1);
 }
 export function camelCase(str) {
-    return str
-        .replace(/(?:^\w|[A-Z]|\b\w)/g, (word, index) => index === 0 ? word.toLowerCase() : word.toUpperCase())
-        .replace(/\s+|_+/g, '');
+    const words = splitWords(str);
+    return words
+        .map((word, index) => index === 0
+        ? word.toLowerCase()
+        : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join('');
 }
 export function pascalCase(str) {
-    return str
-        .replace(/(?:^\w|[A-Z]|\b\w)/g, (word) => word.toUpperCase())
-        .replace(/\s+|_+/g, '');
+    const words = splitWords(str);
+    return words
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join('');
 }
 export function kebabCase(str) {
-    return str
-        .replace(/([a-z])([A-Z])/g, '$1-$2')
-        .replace(/\s+|_+/g, '-')
-        .toLowerCase();
+    return splitWords(str)
+        .map((word) => word.toLowerCase())
+        .join('-');
 }
 export function snakeCase(str) {
-    return str
-        .replace(/([a-z])([A-Z])/g, '$1_$2')
-        .replace(/\s+|-+/g, '_')
-        .toLowerCase();
+    return splitWords(str)
+        .map((word) => word.toLowerCase())
+        .join('_');
 }
 export function dotCase(str) {
-    return str
-        .replace(/([a-z])([A-Z])/g, '$1.$2')
-        .replace(/\s+|-+|_+/g, '.')
-        .toLowerCase();
+    return splitWords(str)
+        .map((word) => word.toLowerCase())
+        .join('.');
 }
 //# sourceMappingURL=validation.js.map
