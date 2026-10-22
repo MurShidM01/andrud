@@ -1,5 +1,5 @@
 /**
- * New project creation command with interactive prompts
+ * New project creation command with interactive prompts and full CLI options
  */
 interface NewCommandOptions {
     name?: string;
@@ -9,6 +9,7 @@ interface NewCommandOptions {
     directory?: string;
     minSdk?: number | string;
     targetSdk?: number | string;
+    platforms?: string;
     force?: boolean;
     skipInstall?: boolean;
     git?: boolean;

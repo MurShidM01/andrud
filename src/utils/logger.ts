@@ -18,33 +18,59 @@ export interface LoggerOptions {
 
 export class Logger {
   private level: LogLevel;
-  private verbose: boolean;
+  private verboseEnabled: boolean;
 
   constructor(options: LoggerOptions = {}) {
     this.level = options.level ?? LogLevel.INFO;
-    this.verbose = options.verbose ?? false;
+    this.verboseEnabled = options.verbose ?? false;
   }
 
   debug(message: string, data?: unknown): void {
-    if (this.level <= LogLevel.DEBUG) {
-      console.log(pc.gray(`[DEBUG] ${message}`), data ?? '');
+    if (this.level <= LogLevel.DEBUG || this.verboseEnabled) {
+      if (data !== undefined) {
+        console.log(pc.gray(`[DEBUG] ${message}`), data);
+      } else {
+        console.log(pc.gray(`[DEBUG] ${message}`));
+      }
+    }
+  }
+
+  verbose(message: string, data?: unknown): void {
+    if (this.verboseEnabled || this.level <= LogLevel.DEBUG) {
+      if (data !== undefined) {
+        console.log(pc.gray(`[VERBOSE] ${message}`), data);
+      } else {
+        console.log(pc.gray(`[VERBOSE] ${message}`));
+      }
     }
   }
 
   info(message: string, data?: unknown): void {
     if (this.level <= LogLevel.INFO) {
-      console.log(pc.blue(`[INFO] ${message}`), data ?? '');
+      if (data !== undefined) {
+        console.log(pc.blue(`[INFO] ${message}`), data);
+      } else {
+        console.log(pc.blue(`[INFO] ${message}`));
+      }
     }
   }
 
   warn(message: string, data?: unknown): void {
     if (this.level <= LogLevel.WARN) {
-      console.log(pc.yellow(`[WARN] ${message}`), data ?? '');
+      if (data !== undefined) {
+        console.log(pc.yellow(`[WARN] ${message}`), data);
+      } else {
+        console.log(pc.yellow(`[WARN] ${message}`));
+      }
     }
   }
 
   error(message: string, error?: Error | string): void {
-    console.error(pc.red(`[ERROR] ${message}`), error ?? '');
+    if (error !== undefined) {
+      console.error(pc.red(`[ERROR] ${message}`), error);
+    } else {
+      console.error(pc.red(`[ERROR] ${message}`));
+    }
   }
 
   success(message: string): void {
@@ -56,12 +82,16 @@ export class Logger {
   }
 
   setVerbose(verbose: boolean): void {
-    this.verbose = verbose;
+    this.verboseEnabled = verbose;
+  }
+
+  isVerbose(): boolean {
+    return this.verboseEnabled;
   }
 }
 
 // Create default logger instance
 export const defaultLogger = new Logger({
   level: process.env.DEBUG ? LogLevel.DEBUG : LogLevel.INFO,
-  verbose: process.env.VERBOSE === 'true'
+  verbose: process.env.VERBOSE === 'true' || process.env.VERBOSE === '1'
 });

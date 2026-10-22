@@ -1,5 +1,5 @@
 /**
- * Core type definitions for the Android project generator
+ * Core type definitions for the Android & Kotlin Multiplatform project generator
  */
 // Default options
 export const DEFAULT_GENERATION_OPTIONS = {
@@ -17,6 +17,7 @@ export const DEFAULT_PROJECT_FEATURES = {
     material3: true,
     viewBinding: true,
     dataBinding: false,
-    jetpackCompose: false
+    jetpackCompose: false,
+    kotlinMultiplatform: false
 };
 //# sourceMappingURL=types.js.map

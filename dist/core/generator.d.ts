@@ -1,7 +1,9 @@
 /**
- * Project generator - creates Android project structure and files
+ * Project generator - orchestrates Android project directory structure and file creation
  */
-import type { TemplateContext, GenerationResult } from './types.js';
+import type { TemplateContext, GenerationResult, GeneratedFile } from './types.js';
+import { validateContext } from './context.js';
+export { validateContext };
 export interface GeneratorOptions {
     overwrite?: boolean;
     skipInstall?: boolean;
@@ -19,13 +21,6 @@ export declare function validateProjectDirectory(projectPath: string, options?: 
     existingFiles?: string[];
 }>;
 /**
- * Validate context has all required fields
- */
-export declare function validateContext(context: Partial<TemplateContext>): {
-    valid: boolean;
-    errors: string[];
-};
-/**
  * Prepare project directory structure
  */
 export declare function prepareProjectStructure(projectPath: string, context: TemplateContext): Promise<{
@@ -33,6 +28,10 @@ export declare function prepareProjectStructure(projectPath: string, context: Te
     createdPaths: string[];
     errors: string[];
 }>;
+/**
+ * Assemble the complete list of files to generate for a given template context
+ */
+export declare function collectProjectFiles(context: TemplateContext): GeneratedFile[];
 /**
  * Generate all project files
  */

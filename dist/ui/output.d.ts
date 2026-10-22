@@ -1,7 +1,8 @@
 /**
  * Output formatting utilities
  */
-export interface Logger {
+import type { StyleType } from './types.js';
+export interface OutputLogger {
     log: (message: string, ...args: unknown[]) => void;
     info: (message: string, ...args: unknown[]) => void;
     success: (message: string, ...args: unknown[]) => void;
@@ -10,7 +11,8 @@ export interface Logger {
     debug: (message: string, ...args: unknown[]) => void;
     verbose: (message: string, ...args: unknown[]) => void;
 }
-declare const logger: Logger;
+export type Logger = OutputLogger;
+declare const logger: OutputLogger;
 export { logger };
 /**
  * Prints the welcome banner
@@ -19,7 +21,7 @@ export declare function printWelcome(): void;
 /**
  * Prints the goodbye message
  */
-export declare function printGoodbye(success?: boolean): void;
+export declare function printGoodbye(isSuccess?: boolean): void;
 /**
  * Prints a success message
  */
@@ -46,7 +48,7 @@ export declare function printSeparatorLine(char?: string, length?: number): void
 /**
  * Prints a banner with text
  */
-export declare function printBanner(text: string, color?: 'primary' | 'success' | 'warning' | 'error'): void;
+export declare function printBanner(text: string, color?: StyleType): void;
 /**
  * Prints an ASCII box with content
  */

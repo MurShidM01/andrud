@@ -15,6 +15,6 @@ export declare function askMultiSelect<T>(options: Array<{
     label: string;
     value: T;
     hint?: string;
-}>, message?: string, min?: number): Promise<T[]>;
+}>, message?: string, min?: number, initialValues?: T[]): Promise<T[]>;
 export declare function askConfirmation(message: string, initialValue?: boolean): Promise<boolean>;
 //# sourceMappingURL=prompts.d.ts.map

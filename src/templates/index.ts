@@ -1,20 +1,19 @@
 /**
- * Template registry and metadata
+ * Template registry, metadata, and file generator exports
  */
 
-import type { TemplateType } from '../core/types.js';
-
-interface TemplateMetadata {
-  id: TemplateType;
-  name: string;
-  description: string;
-  keywords: string[];
-  features: string[];
-  language: 'kotlin' | 'java';
-  uiFramework: 'xml' | 'compose';
-}
+import type { TemplateType, TemplateMetadata } from '../core/types.js';
+import { resolveTemplateId } from '../core/config.js';
 
 export type { TemplateMetadata };
+
+export * from './gradle.js';
+export * from './wrapper.js';
+export * from './project-files.js';
+export * from './manifest.js';
+export * from './resources.js';
+export * from './sources.js';
+export * from './kmp.js';
 
 export const TEMPLATE_REGISTRY: TemplateMetadata[] = [
   {
@@ -52,14 +51,31 @@ export const TEMPLATE_REGISTRY: TemplateMetadata[] = [
     features: ['CMake Integration', 'JNI Bridge', 'Native Development', 'Multi-ABI Support', 'STL'],
     language: 'kotlin',
     uiFramework: 'xml'
+  },
+  {
+    id: 'kotlin-multiplatform',
+    name: 'Kotlin Multiplatform (Cross-Platform)',
+    description: 'Cross-platform Kotlin Multiplatform & Compose Multiplatform project targeting Android, iOS, Desktop (JVM), and Web (Wasm).',
+    keywords: ['kotlin', 'multiplatform', 'kmp', 'cmp', 'cross-platform', 'ios', 'android', 'desktop', 'wasm', 'web'],
+    features: [
+      'Compose Multiplatform Shared UI',
+      'expect/actual Platform APIs',
+      'Android + iOS + Desktop + Web (Wasm)',
+      'Shared Module (:shared) & Version Catalog',
+      'Kotlin Coroutines & Serialization'
+    ],
+    language: 'kotlin',
+    uiFramework: 'compose',
+    platforms: ['android', 'ios', 'desktop', 'wasmJs']
   }
 ];
 
 /**
- * Get template metadata by ID
+ * Get template metadata by ID (supports 'kmp' / 'cmp' aliases)
  */
-export function getTemplateMetadata(id: TemplateType): TemplateMetadata | undefined {
-  return TEMPLATE_REGISTRY.find((t) => t.id === id);
+export function getTemplateMetadata(id: TemplateType | string): TemplateMetadata | undefined {
+  const resolved = resolveTemplateId(id);
+  return TEMPLATE_REGISTRY.find((t) => t.id === resolved);
 }
 
 /**
@@ -95,15 +111,19 @@ export function searchTemplates(query: string): TemplateMetadata[] {
 /**
  * Get templates by category
  */
-export function getTemplatesByCategory(category: 'kotlin' | 'java' | 'native'): TemplateMetadata[] {
+export function getTemplatesByCategory(
+  category: 'kotlin' | 'java' | 'native' | 'multiplatform'
+): TemplateMetadata[] {
   return TEMPLATE_REGISTRY.filter((t) => {
     switch (category) {
       case 'kotlin':
-        return t.id === 'kotlin-xml' || t.id === 'kotlin-compose' || t.id === 'native-cpp';
+        return t.language === 'kotlin';
       case 'java':
         return t.id === 'java-xml';
       case 'native':
         return t.id === 'native-cpp';
+      case 'multiplatform':
+        return t.id === 'kotlin-multiplatform';
       default:
         return false;
     }
@@ -113,7 +133,8 @@ export function getTemplatesByCategory(category: 'kotlin' | 'java' | 'native'): 
 /**
  * Get template preview code
  */
-export function getTemplatePreview(id: TemplateType): string | undefined {
+export function getTemplatePreview(id: TemplateType | string): string | undefined {
+  const resolved = resolveTemplateId(id);
   const previews: Record<string, string> = {
     'kotlin-compose': `// MainActivity.kt
 @Composable
@@ -155,8 +176,21 @@ extern "C" JNIEXPORT jstring JNICALL
 Java_com_example_app_NativeLib_stringFromJNI(
     JNIEnv* env, jobject /* this */) {
     return env->NewStringUTF("Hello from C++");
-}`
+}`,
+    'kotlin-multiplatform': `// lib/main.kt (Shared across Android, iOS, Desktop & Web)
+@Composable
+fun App() {
+    MyAppSharedTheme {
+        SharedApp()
+    }
+}
+
+// lib/Platform.kt
+interface Platform {
+    val name: String
+}
+expect fun getPlatform(): Platform`
   };
 
-  return previews[id];
+  return previews[resolved];
 }

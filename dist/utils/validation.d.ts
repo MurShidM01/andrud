@@ -1,5 +1,5 @@
 /**
- * Validation utilities for app names, package names, and paths
+ * Validation utilities for app names, package names, SDK versions, and paths
  */
 export interface ValidationResult {
     valid: boolean;
@@ -26,6 +26,14 @@ export declare function validateAndroidMinSdk(sdk: number | string): ValidationR
 export declare function validateAndroidTargetSdk(sdk: number | string): ValidationResult;
 export declare function sanitizeFileName(name: string): string;
 export declare function sanitizePackageName(name: string): string;
+/**
+ * Derive a valid Android app name from an arbitrary string (e.g. directory basename)
+ */
+export declare function deriveValidAppName(rawName: string): string;
+/**
+ * Derive a valid default package name from an app name
+ */
+export declare function deriveDefaultPackageName(appName: string): string;
 export declare function capitalizeFirstLetter(str: string): string;
 export declare function camelCase(str: string): string;
 export declare function pascalCase(str: string): string;

@@ -1,4 +1,4 @@
-﻿# Changelog
+# Changelog
 
 All notable changes to this project will be documented in this file.
 
@@ -12,6 +12,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Plugin system for custom generators.
 - Configuration file support (`andrud.config.js`).
 - Additional hardware/runner validation for Linux arm64, Windows amd64, and macOS.
+
+---
+
+## [1.0.6] - 2026-10-22
+
+### Added
+- **Kotlin Multiplatform (KMP) Plugin & Cross-Platform Template (`kotlin-multiplatform` / `kmp`)**:
+  - Added `kotlinMultiplatformPlugin` (`src/plugins/kotlin-multiplatform.ts`) and dedicated `andrud kmp [name]` CLI command.
+  - Added Flutter-style top-level **`lib/`** directory (`lib/main.kt`, `lib/App.kt`, `lib/Platform.kt`, `lib/Greeting.kt`, `lib/ui/theme/Color.kt`, `lib/ui/theme/Type.kt`, `lib/ui/theme/Theme.kt`) and **`test/`** directory (`test/GreetingTest.kt`) where all cross-platform public code lives in one place, wired directly into `commonMain` (`kotlin.srcDir("../lib")`) and `commonTest` (`kotlin.srcDir("../test")`).
+  - Added cross-platform target scaffolding for **Android**, **iOS** (`iosX64`, `iosArm64`, `iosSimulatorArm64` + SwiftUI `iosApp` with `Info.plist`), **Desktop (JVM)** (`main.kt` + native distribution config), and **Web (Kotlin/Wasm)** (`ComposeViewport` `main.kt` + `index.html`).
+  - Added Gradle Version Catalog (`gradle/libs.versions.toml`) generation for Kotlin Multiplatform projects.
+
+### Changed
+- Updated default Android SDK configuration across all templates to **minSdk 24 (Android 7.0)** and **targetSdk / compileSdk 37 (Android 17)**.
+- Modularized template generators under `src/templates/` (`gradle.ts`, `kmp.ts`, `manifest.ts`, `project-files.ts`, `resources.ts`, `sources.ts`, `wrapper.ts`).
+- Strengthened package/app name validation, case conversion utilities, unit/instrumented test generation, and dark-theme (`values-night/themes.xml`) generation.
 
 ---
 
@@ -134,7 +150,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Status | Date |
 |---------|--------|------|
-| 1.0.5 | ✅ Current | 2026-06-02 |
+| 1.0.6 | ✅ Current | 2026-10-22 |
+| 1.0.5 | ✅ Released | 2026-06-02 |
 | 1.0.4 | ✅ Released | 2026-06-02 |
 | 1.0.3 | ✅ Released | 2026-06-02 |
 | 1.0.2 | ✅ Released | 2026-06-01 |

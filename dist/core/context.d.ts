@@ -1,15 +1,15 @@
 /**
- * Context builder for generating Android project context
+ * Context builder for generating Android and Kotlin Multiplatform project context
  */
-import type { TemplateType, TemplateContext, ProjectFeatures } from './types.js';
+import type { TemplateType, TemplateContext, ProjectFeatures, KmpConfig, KmpPlatform } from './types.js';
+export type BaseProjectContext = Omit<TemplateContext, 'packagePath' | 'appNameSnake' | 'appNameKebab' | 'appNamePascal' | 'appNameCamel' | 'appNameLower' | 'year' | 'generatorVersion'> & {
+    features: ProjectFeatures;
+};
 /**
  * Build default context from basic parameters
  */
-export declare function buildDefaultProjectContext(appName: string, packageName: string, projectDirectory: string, template: TemplateType, features?: Partial<ProjectFeatures>, minSdk?: number, targetSdk?: number): Omit<TemplateContext, 'packagePath' | 'appNameSnake' | 'appNameKebab' | 'appNamePascal' | 'appNameCamel' | 'appNameLower' | 'year' | 'generatorVersion'>;
-/**
- * Build full template context with all derived values
- */
-export declare function buildTemplateContext(context: {
+export declare function buildDefaultProjectContext(appName: string, packageName: string, projectDirectory: string, template: TemplateType, features?: Partial<ProjectFeatures>, minSdk?: number, targetSdk?: number, kmpPlatforms?: KmpPlatform[] | string): BaseProjectContext;
+export interface TemplateContextInput extends Partial<ProjectFeatures> {
     appName: string;
     packageName: string;
     projectDirectory: string;
@@ -20,6 +20,7 @@ export declare function buildTemplateContext(context: {
         minSdk: number;
         targetSdk: number;
         compileSdk: number;
+        buildToolsVersion?: string;
     };
     gradle: {
         agpVersion: string;
@@ -27,16 +28,22 @@ export declare function buildTemplateContext(context: {
         kotlinVersion?: string;
         composeCompilerVersion?: string;
         composeBomVersion?: string;
+        composeMultiplatformVersion?: string;
     };
-    features: Record<string, boolean>;
+    features?: Partial<ProjectFeatures> | Record<string, boolean | undefined>;
     nativeCpp?: {
         cppStandard: string;
         ndkVersion?: string;
         stlType?: string;
         abiFilters?: string[];
     };
+    kmp?: Partial<KmpConfig>;
     year?: string;
-}): TemplateContext;
+}
+/**
+ * Build full template context with all derived values
+ */
+export declare function buildTemplateContext(context: TemplateContextInput): TemplateContext;
 /**
  * Validate context has all required fields
  */

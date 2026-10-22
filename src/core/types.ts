@@ -1,11 +1,29 @@
 /**
- * Core type definitions for the Android project generator
+ * Core type definitions for the Android & Kotlin Multiplatform project generator
  */
 
 // Language and UI framework types
 export type LanguageType = 'kotlin' | 'java';
 export type UiFrameworkType = 'xml' | 'compose';
-export type TemplateType = 'kotlin-xml' | 'kotlin-compose' | 'java-xml' | 'native-cpp';
+export type TemplateType =
+  | 'kotlin-xml'
+  | 'kotlin-compose'
+  | 'java-xml'
+  | 'native-cpp'
+  | 'kotlin-multiplatform';
+
+// Cross-platform targets for Kotlin Multiplatform
+export type KmpPlatform = 'android' | 'ios' | 'desktop' | 'wasmJs';
+
+// Kotlin Multiplatform configuration
+export interface KmpConfig {
+  platforms: KmpPlatform[];
+  composeMultiplatformVersion: string;
+  coroutinesVersion: string;
+  serializationVersion: string;
+  sharedModuleName: string;
+  includeIosApp: boolean;
+}
 
 // Android SDK configuration
 export interface AndroidSdkConfig {
@@ -22,6 +40,7 @@ export interface GradleConfig {
   kotlinVersion?: string;
   composeCompilerVersion?: string;
   composeBomVersion?: string;
+  composeMultiplatformVersion?: string;
 }
 
 // Project features
@@ -35,6 +54,7 @@ export interface ProjectFeatures {
   viewBinding?: boolean;
   dataBinding?: boolean;
   jetpackCompose?: boolean;
+  kotlinMultiplatform?: boolean;
 }
 
 // Native C++ configuration
@@ -77,6 +97,9 @@ export interface TemplateContext extends ProjectFeatures {
 
   // Native C++ config (optional)
   nativeCpp?: NativeCppConfig;
+
+  // Kotlin Multiplatform config (optional)
+  kmp?: KmpConfig;
 }
 
 // Generation options
@@ -132,6 +155,7 @@ export interface TemplateMetadata {
   features: string[];
   language: LanguageType;
   uiFramework: UiFrameworkType;
+  platforms?: KmpPlatform[];
   codePreview?: string;
 }
 
@@ -143,6 +167,7 @@ export interface NewCommandOptions {
   directory?: string;
   minSdk?: number;
   targetSdk?: number;
+  platforms?: string;
   force?: boolean;
   skipInstall?: boolean;
   git?: boolean;
@@ -153,6 +178,7 @@ export interface NewCommandOptions {
 export interface InitCommandOptions {
   force: boolean;
   template?: string;
+  platforms?: string;
 }
 
 export interface InfoCommandOptions {
@@ -181,5 +207,6 @@ export const DEFAULT_PROJECT_FEATURES: ProjectFeatures = {
   material3: true,
   viewBinding: true,
   dataBinding: false,
-  jetpackCompose: false
+  jetpackCompose: false,
+  kotlinMultiplatform: false
 };

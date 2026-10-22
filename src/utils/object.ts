@@ -10,6 +10,9 @@
 export function merge<T extends object>(target: T, ...sources: Partial<T>[]): T {
   for (const source of sources) {
     for (const key of Object.keys(source) as Array<keyof T>) {
+      if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+        continue;
+      }
       const targetValue = target[key];
       const sourceValue = source[key];
       if (

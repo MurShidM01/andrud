@@ -2,6 +2,7 @@
  * Wrapper around @clack/prompts with proper TypeScript types
  */
 import { select, text, multiselect, confirm, isCancel, cancel } from '@clack/prompts';
+import { validateAppName, validatePackageNameInput, validateDirectoryPath } from '../utils/validation.js';
 // Re-export core functions
 export { select, text, multiselect, confirm, isCancel, cancel };
 // Helper function to ask for app name
@@ -10,12 +11,10 @@ export async function askAppName(defaultValue) {
         message: '? What is the app name?',
         placeholder: 'MyAwesomeApp',
         defaultValue: defaultValue ?? 'MyAwesomeApp',
-        validate: (value) => {
-            if (!value || value.trim().length === 0) {
-                return 'App name cannot be empty';
-            }
-            if (!/^[a-zA-Z][a-zA-Z0-9_]*$/.test(value)) {
-                return 'App name must start with a letter and contain only letters, numbers, and underscores';
+        validate: (input) => {
+            const result = validateAppName(input);
+            if (!result.valid) {
+                return result.errors[0];
             }
             return undefined;
         }
@@ -24,7 +23,7 @@ export async function askAppName(defaultValue) {
         cancel();
         process.exit(0);
     }
-    return value;
+    return value.trim();
 }
 // Helper function to ask for package name
 export async function askPackageName(defaultValue) {
@@ -32,12 +31,10 @@ export async function askPackageName(defaultValue) {
         message: '? What is the package name?',
         placeholder: 'com.example.myapp',
         defaultValue: defaultValue ?? 'com.example.myapp',
-        validate: (value) => {
-            if (!value || value.trim().length === 0) {
-                return 'Package name cannot be empty';
-            }
-            if (!/^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$/.test(value)) {
-                return 'Package name must be a valid domain structure (e.g., com.example.myapp)';
+        validate: (input) => {
+            const result = validatePackageNameInput(input);
+            if (!result.valid) {
+                return result.errors[0];
             }
             return undefined;
         }
@@ -46,7 +43,7 @@ export async function askPackageName(defaultValue) {
         cancel();
         process.exit(0);
     }
-    return value;
+    return value.trim().toLowerCase();
 }
 // Helper function to ask for project directory
 export async function askDirectory(defaultValue) {
@@ -54,12 +51,10 @@ export async function askDirectory(defaultValue) {
         message: '? In which directory should the project be created?',
         placeholder: './my-app',
         defaultValue: defaultValue ?? './my-app',
-        validate: (value) => {
-            if (!value || value.trim().length === 0) {
-                return 'Directory path cannot be empty';
-            }
-            if (value.includes('..')) {
-                return 'Directory path cannot contain ".." to prevent directory traversal';
+        validate: (input) => {
+            const result = validateDirectoryPath(input);
+            if (!result.valid) {
+                return result.errors[0];
             }
             return undefined;
         }
@@ -68,11 +63,11 @@ export async function askDirectory(defaultValue) {
         cancel();
         process.exit(0);
     }
-    return value;
+    return value.trim();
 }
 // Template selection helper
 export async function selectTemplate(templates) {
-    const options = templates.map(t => ({
+    const options = templates.map((t) => ({
         label: t.label + (t.hint ? ` ${t.hint}` : ''),
         value: t.value
     }));
@@ -87,15 +82,17 @@ export async function selectTemplate(templates) {
     return value;
 }
 // Multi-select helper
-export async function askMultiSelect(options, message = '? Select options', min) {
-    const formattedOptions = options.map(o => ({
+export async function askMultiSelect(options, message = '? Select options', min, initialValues) {
+    const formattedOptions = options.map((o) => ({
         label: o.label + (o.hint ? ` (${o.hint})` : ''),
         value: o.value
     }));
     const value = await multiselect({
         message,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         options: formattedOptions,
-        ...(min !== undefined ? { min } : {})
+        required: min !== undefined && min > 0,
+        ...(initialValues !== undefined ? { initialValues } : {})
     });
     if (isCancel(value)) {
         cancel();

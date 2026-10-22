@@ -3,6 +3,10 @@
  */
 import pc from 'picocolors';
 import gradient from 'gradient-string';
+// Pre-initialized singleton gradient instances
+const teenGradientInstance = gradient('#00C9FF', '#92FE9D');
+const coolGradientInstance = gradient('#667eea', '#764ba2');
+const passionGradientInstance = gradient('#ee0979', '#ff6a00');
 // Style function to apply color based on type
 export function style(text, type) {
     switch (type) {
@@ -44,26 +48,23 @@ export const blue = (text) => pc.blue(text);
 export const gray = (text) => pc.gray(text);
 // Gradient functions using gradient-string
 export function gradientTeen(text) {
-    const g = gradient('#00C9FF', '#92FE9D');
-    return g(text);
+    return teenGradientInstance(text);
 }
 export function gradientRainbow(text) {
     return gradient.rainbow(text);
 }
 export function gradientCool(text) {
-    const g = gradient('#667eea', '#764ba2');
-    return g(text);
+    return coolGradientInstance(text);
 }
 export function gradientPassion(text) {
-    const g = gradient('#ee0979', '#ff6a00');
-    return g(text);
+    return passionGradientInstance(text);
 }
 // Section formatting
 export const header = (text) => {
-    return bold(pc.cyan(pc.bold(`\n${text}\n`)));
+    return pc.bold(pc.cyan(`\n${text}\n`));
 };
 export const section = (text) => {
-    return bold(pc.white(text));
+    return pc.bold(pc.white(text));
 };
 export const subsection = (text) => {
     return pc.dim(text);
@@ -92,9 +93,11 @@ export const rightArrow = (from, to) => {
 };
 // Progress bar
 export function progressBar(current, total, width = 20) {
-    const percentage = Math.min(Math.max(current / total, 0), 1);
-    const filled = Math.round(percentage * width);
-    const empty = width - filled;
+    const safeWidth = Math.max(1, width);
+    const ratio = total > 0 ? current / total : 0;
+    const percentage = Math.min(Math.max(ratio, 0), 1);
+    const filled = Math.round(percentage * safeWidth);
+    const empty = safeWidth - filled;
     const filledBar = pc.green('█'.repeat(filled));
     const emptyBar = pc.gray('░'.repeat(empty));
     const percentText = pc.cyan(`${Math.round(percentage * 100)}%`);
@@ -102,7 +105,7 @@ export function progressBar(current, total, width = 20) {
 }
 // Separator line
 export function printSeparator(char = '─', length = 60) {
-    return pc.gray(char.repeat(length));
+    return pc.gray(char.repeat(Math.max(0, length)));
 }
 // Terminal control functions
 export function clearLine() {

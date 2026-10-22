@@ -8,6 +8,9 @@
 export function merge(target, ...sources) {
     for (const source of sources) {
         for (const key of Object.keys(source)) {
+            if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+                continue;
+            }
             const targetValue = target[key];
             const sourceValue = source[key];
             if (sourceValue &&

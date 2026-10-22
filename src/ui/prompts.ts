@@ -14,6 +14,11 @@ import {
   type MultiSelectOptions,
   type ConfirmOptions
 } from '@clack/prompts';
+import {
+  validateAppName,
+  validatePackageNameInput,
+  validateDirectoryPath
+} from '../utils/validation.js';
 
 // Re-export core functions
 export {
@@ -35,12 +40,10 @@ export async function askAppName(defaultValue?: string): Promise<string> {
     message: '? What is the app name?',
     placeholder: 'MyAwesomeApp',
     defaultValue: defaultValue ?? 'MyAwesomeApp',
-    validate: (value: string) => {
-      if (!value || value.trim().length === 0) {
-        return 'App name cannot be empty';
-      }
-      if (!/^[a-zA-Z][a-zA-Z0-9_]*$/.test(value)) {
-        return 'App name must start with a letter and contain only letters, numbers, and underscores';
+    validate: (input: string) => {
+      const result = validateAppName(input);
+      if (!result.valid) {
+        return result.errors[0];
       }
       return undefined;
     }
@@ -51,7 +54,7 @@ export async function askAppName(defaultValue?: string): Promise<string> {
     process.exit(0);
   }
 
-  return value as string;
+  return (value as string).trim();
 }
 
 // Helper function to ask for package name
@@ -60,12 +63,10 @@ export async function askPackageName(defaultValue?: string): Promise<string> {
     message: '? What is the package name?',
     placeholder: 'com.example.myapp',
     defaultValue: defaultValue ?? 'com.example.myapp',
-    validate: (value: string) => {
-      if (!value || value.trim().length === 0) {
-        return 'Package name cannot be empty';
-      }
-      if (!/^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$/.test(value)) {
-        return 'Package name must be a valid domain structure (e.g., com.example.myapp)';
+    validate: (input: string) => {
+      const result = validatePackageNameInput(input);
+      if (!result.valid) {
+        return result.errors[0];
       }
       return undefined;
     }
@@ -76,7 +77,7 @@ export async function askPackageName(defaultValue?: string): Promise<string> {
     process.exit(0);
   }
 
-  return value as string;
+  return (value as string).trim().toLowerCase();
 }
 
 // Helper function to ask for project directory
@@ -85,12 +86,10 @@ export async function askDirectory(defaultValue?: string): Promise<string> {
     message: '? In which directory should the project be created?',
     placeholder: './my-app',
     defaultValue: defaultValue ?? './my-app',
-    validate: (value: string) => {
-      if (!value || value.trim().length === 0) {
-        return 'Directory path cannot be empty';
-      }
-      if (value.includes('..')) {
-        return 'Directory path cannot contain ".." to prevent directory traversal';
+    validate: (input: string) => {
+      const result = validateDirectoryPath(input);
+      if (!result.valid) {
+        return result.errors[0];
       }
       return undefined;
     }
@@ -101,14 +100,14 @@ export async function askDirectory(defaultValue?: string): Promise<string> {
     process.exit(0);
   }
 
-  return value as string;
+  return (value as string).trim();
 }
 
 // Template selection helper
 export async function selectTemplate<T extends string>(
   templates: Array<{ label: string; value: T; hint?: string }>
 ): Promise<T> {
-  const options = templates.map(t => ({
+  const options = templates.map((t) => ({
     label: t.label + (t.hint ? ` ${t.hint}` : ''),
     value: t.value
   }));
@@ -130,17 +129,20 @@ export async function selectTemplate<T extends string>(
 export async function askMultiSelect<T>(
   options: Array<{ label: string; value: T; hint?: string }>,
   message: string = '? Select options',
-  min?: number
+  min?: number,
+  initialValues?: T[]
 ): Promise<T[]> {
-  const formattedOptions = options.map(o => ({
+  const formattedOptions = options.map((o) => ({
     label: o.label + (o.hint ? ` (${o.hint})` : ''),
     value: o.value
   }));
 
   const value = await multiselect({
     message,
-    options: formattedOptions,
-    ...(min !== undefined ? { min } : {})
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    options: formattedOptions as any,
+    required: min !== undefined && min > 0,
+    ...(initialValues !== undefined ? { initialValues } : {})
   });
 
   if (isCancel(value)) {
