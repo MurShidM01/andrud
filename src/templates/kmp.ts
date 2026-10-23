@@ -277,6 +277,27 @@ if [ "\${1:-}" = "show" ] && [ -n "\${2:-}" ]; then
   shift
 fi
 
+# On Linux ARM64 (e.g., Termux / proot), Google's Android SDK build-tools (aapt2) are x86_64-only.
+# Default './kotlin build' and './kotlin test' to '-p jvm' unless '-p' or '--platform' is explicitly specified.
+if [ "\${1:-}" = "build" ] || [ "\${1:-}" = "test" ]; then
+  HAS_PLATFORM_ARG=0
+  for arg in "\$@"; do
+    case "\$arg" in
+      -p|-p=*|--platform|--platform=*)
+        HAS_PLATFORM_ARG=1
+        break
+        ;;
+    esac
+  done
+  if [ "\${HAS_PLATFORM_ARG}" -eq 0 ]; then
+    case "\$(uname -s)-\$(uname -m)" in
+      Linux-aarch64|Linux-arm64)
+        set -- "\$@" -p jvm
+        ;;
+    esac
+  fi
+fi
+
 find_amper_lib_dir() {
   if [ -d "\${AMPER_DIST_DIR}/lib" ]; then
     echo "\${AMPER_DIST_DIR}/lib"
@@ -308,56 +329,72 @@ fi
 
 AMPER_HOME_DIR=\$(dirname "\${AMPER_LIB_DIR}")
 
-# Locate or provision Java runtime (JDK/JBR 21) for Amper CLI
+# Locate or provision Java 21+ runtime (JBR 21) for Amper CLI
 JAVA_EXE=""
+KERNEL_NAME=\$(uname -s)
+MACHINE_ARCH=\$(uname -m)
+case "\${KERNEL_NAME}" in
+  Darwin*) JBR_OS="osx" ;;
+  Linux*)  JBR_OS="linux" ;;
+  *)       JBR_OS="linux" ;;
+esac
+case "\${MACHINE_ARCH}" in
+  x86_64|x64)    JBR_ARCH="x64" ;;
+  aarch64|arm64) JBR_ARCH="aarch64" ;;
+  *)             JBR_ARCH="x64" ;;
+esac
+JBR_VERSION="21.0.4"
+JBR_BUILD="b509.26"
+JBR_DIR="\${AMPER_CACHE_DIR}/jbr-\${JBR_VERSION}-\${JBR_OS}-\${JBR_ARCH}-\${JBR_BUILD}"
+
+java_is_21_plus() {
+  ver=\$("\$1" -version 2>&1 | head -n 1 | sed -E 's/.*"([0-9]+).*/\\1/')
+  case "\$ver" in
+    ''|*[!0-9]*) return 1 ;;
+    *) [ "\$ver" -ge 21 ] ;;
+  esac
+}
+
 if [ -n "\${AMPER_JAVA_HOME:-}" ] && [ -x "\${AMPER_JAVA_HOME}/bin/java" ]; then
   JAVA_EXE="\${AMPER_JAVA_HOME}/bin/java"
-elif [ -n "\${JAVA_HOME:-}" ] && [ -x "\${JAVA_HOME}/bin/java" ]; then
-  JAVA_EXE="\${JAVA_HOME}/bin/java"
-elif command -v java >/dev/null 2>&1; then
-  JAVA_EXE=\$(command -v java)
-else
-  KERNEL_NAME=\$(uname -s)
-  MACHINE_ARCH=\$(uname -m)
-  case "\${KERNEL_NAME}" in
-    Darwin*) JBR_OS="osx" ;;
-    Linux*)  JBR_OS="linux" ;;
-    *)       JBR_OS="linux" ;;
-  esac
-  case "\${MACHINE_ARCH}" in
-    x86_64|x64)   JBR_ARCH="x64" ;;
-    aarch64|arm64) JBR_ARCH="aarch64" ;;
-    *)            JBR_ARCH="x64" ;;
-  esac
-  JBR_VERSION="21.0.4"
-  JBR_BUILD="b509.26"
-  JBR_DIR="\${AMPER_CACHE_DIR}/jbr-\${JBR_VERSION}-\${JBR_OS}-\${JBR_ARCH}-\${JBR_BUILD}"
+fi
+
+if [ -z "\${JAVA_EXE}" ]; then
   for d in "\${JBR_DIR}" "\${JBR_DIR}"/* "\${JBR_DIR}/Contents/Home" "\${JBR_DIR}"/*/Contents/Home; do
     if [ -x "\$d/bin/java" ]; then
       JAVA_EXE="\$d/bin/java"
       break
     fi
   done
-  if [ -z "\${JAVA_EXE}" ]; then
-    mkdir -p "\${JBR_DIR}"
-    JBR_URL="https://cache-redirector.jetbrains.com/intellij-jbr/jbr-\${JBR_VERSION}-\${JBR_OS}-\${JBR_ARCH}-\${JBR_BUILD}.tar.gz"
-    echo "Downloading JetBrains Runtime (\${JBR_VERSION}-\${JBR_BUILD} for \${JBR_OS}-\${JBR_ARCH})..."
-    if command -v curl >/dev/null 2>&1; then
-      curl -fSL "\${JBR_URL}" | tar -xz -C "\${JBR_DIR}"
-    elif command -v wget >/dev/null 2>&1; then
-      wget -qO- "\${JBR_URL}" | tar -xz -C "\${JBR_DIR}"
-    fi
-    for d in "\${JBR_DIR}" "\${JBR_DIR}"/* "\${JBR_DIR}/Contents/Home" "\${JBR_DIR}"/*/Contents/Home; do
-      if [ -x "\$d/bin/java" ]; then
-        JAVA_EXE="\$d/bin/java"
-        break
-      fi
-    done
+fi
+
+if [ -z "\${JAVA_EXE}" ] && [ -n "\${JAVA_HOME:-}" ] && [ -x "\${JAVA_HOME}/bin/java" ] && java_is_21_plus "\${JAVA_HOME}/bin/java"; then
+  JAVA_EXE="\${JAVA_HOME}/bin/java"
+fi
+
+if [ -z "\${JAVA_EXE}" ] && command -v java >/dev/null 2>&1 && java_is_21_plus "\$(command -v java)"; then
+  JAVA_EXE=\$(command -v java)
+fi
+
+if [ -z "\${JAVA_EXE}" ]; then
+  mkdir -p "\${JBR_DIR}"
+  JBR_URL="https://cache-redirector.jetbrains.com/intellij-jbr/jbr-\${JBR_VERSION}-\${JBR_OS}-\${JBR_ARCH}-\${JBR_BUILD}.tar.gz"
+  echo "Downloading JetBrains Runtime (\${JBR_VERSION}-\${JBR_BUILD} for \${JBR_OS}-\${JBR_ARCH})..."
+  if command -v curl >/dev/null 2>&1; then
+    curl -fSL "\${JBR_URL}" | tar -xz -C "\${JBR_DIR}"
+  elif command -v wget >/dev/null 2>&1; then
+    wget -qO- "\${JBR_URL}" | tar -xz -C "\${JBR_DIR}"
   fi
+  for d in "\${JBR_DIR}" "\${JBR_DIR}"/* "\${JBR_DIR}/Contents/Home" "\${JBR_DIR}"/*/Contents/Home; do
+    if [ -x "\$d/bin/java" ]; then
+      JAVA_EXE="\$d/bin/java"
+      break
+    fi
+  done
 fi
 
 if [ -z "\${JAVA_EXE}" ] || [ ! -x "\${JAVA_EXE}" ]; then
-  echo "Error: Java runtime (JDK 17+) not found. Install OpenJDK or set JAVA_HOME." >&2
+  echo "Error: Java 21+ runtime not found. Install OpenJDK 21+ or set AMPER_JAVA_HOME." >&2
   exit 1
 fi
 
@@ -414,16 +451,9 @@ export function generateKmpSharedModuleYaml(ctx: TemplateContext): GeneratedFile
   if (platforms.includes('ios')) {
     targetList.push('    - iosArm64', '    - iosSimulatorArm64', '    - iosX64');
   }
-  if (platforms.includes('desktop')) {
+  if (platforms.includes('desktop') || platforms.length === 0 || targetList.length === 0) {
     targetList.push('    - jvm');
   }
-  if (platforms.includes('wasmJs')) {
-    targetList.push('    - wasm');
-  }
-
-  const aliasesSection = platforms.includes('wasmJs')
-    ? `\naliases:\n  - wasmJs:\n      - wasm\n`
-    : '';
 
   const coroutinesVersion = ctx.kmp?.coroutinesVersion || '1.9.0';
   const amperMinSdk = Math.min(ctx.android.minSdk, 35);
@@ -434,7 +464,7 @@ export function generateKmpSharedModuleYaml(ctx: TemplateContext): GeneratedFile
   type: lib
   platforms:
 ${targetList.join('\n')}
-${aliasesSection}
+
 dependencies:
   - $compose.runtime: exported
   - $compose.foundation: exported
@@ -442,8 +472,6 @@ dependencies:
   - $compose.ui: exported
   - $compose.components.resources: exported
   - $compose.preview
-  - org.jetbrains.androidx.lifecycle:lifecycle-viewmodel:${ANDROIDX_VERSIONS.LIFECYCLE}
-  - org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose:${ANDROIDX_VERSIONS.LIFECYCLE}
   - org.jetbrains.kotlinx:kotlinx-coroutines-core:${coroutinesVersion}
   - $kotlin.serialization.json
 
@@ -786,8 +814,8 @@ dependencies:
   - $compose.material3
   - $compose.ui
   - $compose.uiTooling
-  - androidx.core:core-ktx:${ANDROIDX_VERSIONS.CORE_KTX}
-  - androidx.activity:activity-compose:${ANDROIDX_VERSIONS.ACTIVITY}
+  - androidx.core:core-ktx:1.13.1
+  - androidx.activity:activity-compose:1.9.0
 
 settings:
   compose: enabled
@@ -1322,14 +1350,7 @@ class PlatformWasmJsTest {
     - wasm
 
 dependencies:
-  - ../shared
-  - $compose.runtime
-  - $compose.foundation
-  - $compose.material3
-  - $compose.ui
-
-settings:
-  compose: enabled
+  - org.jetbrains.kotlinx:kotlinx-coroutines-core:${ctx.kmp?.coroutinesVersion || '1.9.0'}
 `
       },
       {
